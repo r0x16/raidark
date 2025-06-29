@@ -40,7 +40,7 @@ func (e *EchoApiProvider) Setup() error {
 		AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete},
 	}))
 
-	e.Server.Pre(middleware.AddTrailingSlash())
+	e.Server.Pre(middleware.RemoveTrailingSlash())
 
 	return nil
 }
@@ -48,11 +48,14 @@ func (e *EchoApiProvider) Setup() error {
 // Run implements domain.ApiProvider.
 func (e *EchoApiProvider) Run() error {
 	if _, err := strconv.Atoi(e.port); err != nil {
-		e.Bundle.Log.Critical("Invalid port number, must to be a number", nil)
+		e.Bundle.Log.Critical("Invalid port number, must to be a number", map[string]any{
+			"port":  e.port,
+			"error": err.Error(),
+		})
 		return err
 	}
-	return e.Server.Start(":" + e.port)
 
+	return e.Server.Start(":" + e.port)
 }
 
 // ProvidesModules implements domain.ApiProvider.
