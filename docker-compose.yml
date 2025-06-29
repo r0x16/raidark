@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${API_PORT:-8080}:8080"
+    environment:
+      - DB_HOST=mariadb
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=${DB_DATABASE}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - API_PORT=${API_PORT}
+    depends_on:
+      - mariadb
+    networks:
+      - raidark-network
+    env_file:
+      - .env
+
+  mariadb:
+    image: mariadb:10.9
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - raidark-network
+    env_file:
+      - .env
+
+volumes:
+  mariadb_data:
+
+networks:
+  raidark-network:
+    driver: bridge

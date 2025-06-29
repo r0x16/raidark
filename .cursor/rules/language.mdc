@@ -1,0 +1,10 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# Reglas de lenguaje del proyecto
+1. Todo el código debe estar en inglés
+2. Todos los comentarios en el código debe estar en inglés
+3. Toda la documentación técnica debe estar en inglés
+4. El README debe estar en inglés

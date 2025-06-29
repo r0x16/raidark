@@ -1,0 +1,30 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# DESCRIPTION
+Te encargarás de seguir estas reglas de GitFlow.
+Esta regla es importantisima y nunca debería saltarse.
+1. Cada vez que empieces a hacer un cambio, debes generar una rama de feature para llevar a cabo estos cambios de manera segura, nunca trabajarás directo en main
+2. Si ya estás trabajando en una rama de feature no crees otra, continúa en la misma hasta que se haga merge
+3. Pregunta al usuario cada vez que termines de crear un feature para ver si es posible realizar merge a la rama principal, cuando este te confirme que todo funcione correctamente
+4. Los commits debes hacerlos cada vez que hagas un cambio y estos deben ser semanticos, por lo tanto utiliza este formato:
+tipo(modulo): Verbo "Acá iría la descripción del commit (sin comillas)"
+Descripción larga del commit
+Cambios:
+    - cambio 1
+    - cambio 2
+    - etc..
+5. los tipos son feat, fix, test, etc..
+6. Los commit siempre deben ser en inglés
+7. En una rama podría haber muchas modificaciones diferentes, no te preocupes, las estamos usando para no romper el código, no importa que un feature incluya modificar más de un modulo a la vez, o que un commit modifique más de un modulo, mientras lo especifiques todo bien.
+8. Cuando hagas el merge, hazlo con squash con un resumen de todos los cambios y commit que fueron realizados, pero que solo se conviertan en un commit en la rama principal
+9. el formato del nombre de los branch será como sigue:
+tipo_descripcion-snake-case_YYYYMMDDHHmm
+donde tipo es feat, fix, test, dependiendo de lo que pida.
+donde YYMMDDHHmm es la fecha y horas en que se creó el branch, obten esta fecha usando el comando date.
+10. Cuando quieras eliminar la rama, recuerda que al hacerlo con squash debes forzar la eliminación de la rama.
+11. Ejecuta el siguiente comando para solucionar problemas con abrir less para los comandos git:
+git config core.pager cat
+12. ESTA REGLA ES MUY IMPORTANTE. Cuando tengas que hacer merge a main, no seas tan verboso en explicar lo que estás haciendo, simplemente haz todo en un comando que haga todo y confirma que quedó bien y listo. De esta misma manera, no expliques tanto el proceso de commit, simplemente ejecuta los comandos y al finalizar todo haz un resumen del commit como parte del mensaje de salida.

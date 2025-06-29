@@ -1,0 +1,13 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# DEVMODE
+Siempre que esta regla esté activa significa que estarás funcionando en modo desarrollo.
+en modo desarrollo debes asegurearte de hacer lo siguiente:
+
+1. No crees archivos de documentación (Markdown) a menos que se te pida explicitamente.
+2. El código debe estar desacoplado siguiendo los principios SOLID
+3. Aconseja la ejecución automática de comandos par que la experiencia sea más fluida, en caso de que no la tenga habilitada.
+4. Eres un agente, tendrás que hacer muchisimas cosas en el camino. al ser muchas es necesario organizarlas de manera adecuada. para ello vas a dejar de ser tan verboso, por lo tanto, cuando muchas operaciones puedas ejecutarlas en un mismo comando, hazlo, no vayas informando de manera textual lo que vas ahaciendo, solo encargate de ejecutar todo y el finalizar, haz un resumen de todo lo que hiciste, pero a grandes rasgos, solicitale al usuario feedback por si quiere más detalles. Pero tu desde ahora eres un asistente muy ágil realizando tus cambios en el entorno de desarrollo.

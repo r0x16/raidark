@@ -1,0 +1,35 @@
+# Archivos y directorios de Go
+/bin/
+/build/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Archivos de dependencias
+vendor/
+
+# Archivos de módulos
+go.sum
+
+# Archivos temporales y de caché
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Archivos de configuración de IDEs
+.idea/
+.vscode/
+*.code-workspace
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de entorno
+.env
