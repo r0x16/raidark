@@ -1,4 +1,4 @@
-package events
+package logger
 
 import (
 	"log/slog"

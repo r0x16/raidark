@@ -9,7 +9,7 @@ import (
 	"github.com/r0x16/Raidark/api/services"
 	"github.com/r0x16/Raidark/shared/domain/logger"
 	"github.com/r0x16/Raidark/shared/driver/db"
-	"github.com/r0x16/Raidark/shared/driver/events"
+	stdlog "github.com/r0x16/Raidark/shared/driver/logger"
 )
 
 // TODO: Refactorize
@@ -66,8 +66,8 @@ func (d *Api) setupDatabase() *db.GormPostgresDatabaseProvider {
  * Setup the logger
  * This method creates a new std out log manager and sets the log level
  */
-func (d *Api) setupLogger() *events.StdOutLogManager {
-	logManager := events.NewStdOutLogManager()
+func (d *Api) setupLogger() logger.LogProvider {
+	logManager := stdlog.NewStdOutLogManager()
 	level := logger.ParseLogLevel(os.Getenv("LOG_LEVEL"))
 	logManager.SetLogLevel(level)
 	return logManager
