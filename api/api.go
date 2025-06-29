@@ -37,12 +37,21 @@ func (a *Api) Run() {
 
 }
 
+/*
+ * Register the modules
+ * This method registers the modules to the server
+ */
 func (a *Api) registerModules(server *drivers.EchoApiProvider) {
 	server.Register(&modules.EchoMainModule{Api: server})
+	// Add more modules here
 }
 
-func (d *Api) setupDatabase() *db.GormMysqlDatabaseProvider {
-	dbProvider := &db.GormMysqlDatabaseProvider{}
+/*
+ * Setup the database connection
+ * This method creates a new postgres database provider and connects to the database
+ */
+func (d *Api) setupDatabase() *db.GormPostgresDatabaseProvider {
+	dbProvider := &db.GormPostgresDatabaseProvider{}
 	err := dbProvider.Connect()
 
 	if err != nil {
@@ -53,6 +62,10 @@ func (d *Api) setupDatabase() *db.GormMysqlDatabaseProvider {
 	return dbProvider
 }
 
+/*
+ * Setup the logger
+ * This method creates a new std out log manager and sets the log level
+ */
 func (d *Api) setupLogger() *events.StdOutLogManager {
 	logManager := events.NewStdOutLogManager()
 	level := logger.ParseLogLevel(os.Getenv("LOG_LEVEL"))
