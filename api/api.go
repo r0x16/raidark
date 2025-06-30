@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/r0x16/Raidark/api/drivers"
 	"github.com/r0x16/Raidark/api/drivers/modules"
 	"github.com/r0x16/Raidark/api/services"
@@ -47,8 +49,33 @@ func (a *Api) Run() {
  * This method registers the modules to the server
  */
 func (a *Api) registerModules(server *drivers.EchoApiProvider) {
-	server.Register(&modules.EchoMainModule{Api: server})
-	server.Register(&modules.EchoAuthModule{Api: server})
+
+	rootModule := modules.EchoModule{
+		Api:   server,
+		Group: server.Server.Group(""),
+	}
+
+	apiv1Module := modules.EchoModule{
+		Api:   server,
+		Group: server.Server.Group("/api/v1"),
+	}
+
+	apiv1Module.Group.Use(middleware.KeyAuthWithConfig(middleware.KeyAuthConfig{
+		KeyLookup:  "header:" + echo.HeaderAuthorization,
+		AuthScheme: "Bearer",
+		Validator: func(key string, c echo.Context) (bool, error) {
+			token, err := server.Bundle.Auth.ParseToken(key)
+			if err != nil {
+				return false, err
+			}
+			c.Set("user", token)
+			return true, nil
+		},
+	}))
+
+	server.Register(&modules.EchoMainModule{EchoModule: rootModule})
+	server.Register(&modules.EchoAuthModule{EchoModule: rootModule})
+	server.Register(&modules.EchoApiMainModule{EchoModule: apiv1Module})
 	// Add more modules here
 }
 

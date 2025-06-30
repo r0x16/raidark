@@ -6,11 +6,10 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/r0x16/Raidark/api/domain"
-	"github.com/r0x16/Raidark/api/drivers"
 )
 
 type EchoMainModule struct {
-	Api *drivers.EchoApiProvider
+	EchoModule
 }
 
 var _ domain.ApiModule = &EchoMainModule{}
@@ -22,12 +21,12 @@ func (e *EchoMainModule) Name() string {
 
 // Setup implements domain.ApiModule.
 func (e *EchoMainModule) Setup() error {
-	e.Api.Server.GET("/health", func(c echo.Context) error {
+	e.Group.GET("/health", func(c echo.Context) error {
 		return c.String(http.StatusOK, "OK")
 	})
 
 	// CSRF token endpoint for frontend applications
-	e.Api.Server.GET("/csrf-token", func(c echo.Context) error {
+	e.Group.GET("/csrf-token", func(c echo.Context) error {
 		// Check if CSRF is enabled
 		csrfEnabled := e.Api.Bundle.Env.GetBool("CSRF_ENABLED", false)
 		if !csrfEnabled {
