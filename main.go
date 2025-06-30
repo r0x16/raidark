@@ -11,12 +11,17 @@ import (
 	"github.com/r0x16/Raidark/cmd"
 )
 
-func main() {
-	err := godotenv.Load(".env")
-
-	if err != nil && !os.IsNotExist(err) {
-		log.Fatalf("Error loading .env file: %v", err)
+// loadEnvIfExists loads the .env file only if it exists
+func loadEnvIfExists() {
+	if _, err := os.Stat(".env"); err == nil {
+		if err := godotenv.Load(".env"); err != nil {
+			log.Fatalf("Error loading .env file: %v", err)
+		}
+		log.Println("Environment file loaded successfully")
 	}
+}
 
+func main() {
+	loadEnvIfExists()
 	cmd.Execute()
 }
