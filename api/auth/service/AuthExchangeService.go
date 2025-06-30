@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/casdoor/casdoor-go-sdk/casdoorsdk"
 	"github.com/r0x16/Raidark/api/auth/domain/model"
 	"github.com/r0x16/Raidark/api/auth/domain/repositories"
 	domauth "github.com/r0x16/Raidark/shared/domain/auth"
-	"golang.org/x/oauth2"
+	"github.com/r0x16/Raidark/shared/domain/model/auth"
 )
 
 // AuthExchangeService handles code exchange for tokens
@@ -24,7 +23,7 @@ func NewAuthExchangeService(sessionRepo repositories.SessionRepository, authProv
 }
 
 // ExchangeCodeForTokens exchanges authorization code for tokens and creates session
-func (s *AuthExchangeService) ExchangeCodeForTokens(code, state, userAgent, ipAddress string) (*model.AuthSession, *oauth2.Token, *casdoorsdk.Claims, error) {
+func (s *AuthExchangeService) ExchangeCodeForTokens(code, state, userAgent, ipAddress string) (*model.AuthSession, *auth.Token, *auth.Claims, error) {
 	// Exchange code for token using Casdoor
 	token, err := s.GetAuthProvider().GetToken(code, state)
 	if err != nil {
@@ -46,8 +45,8 @@ func (s *AuthExchangeService) ExchangeCodeForTokens(code, state, userAgent, ipAd
 	// Create session record
 	session := &model.AuthSession{
 		SessionID:     sessionID,
-		UserID:        claims.User.Id,
-		Username:      claims.User.Name,
+		UserID:        claims.Subject,
+		Username:      claims.Username,
 		RefreshToken:  token.RefreshToken,
 		AccessToken:   token.AccessToken,
 		ExpiresAt:     token.Expiry,

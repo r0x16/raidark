@@ -13,8 +13,8 @@ import (
 
 // ExchangeRequest represents the request structure for token exchange
 type ExchangeRequest struct {
-	Code  string `json:"code" form:"code" query:"code"`
-	State string `json:"state" form:"state" query:"state"`
+	Code  string `json:"code" form:"code"`
+	State string `json:"state" form:"state"`
 }
 
 // ExchangeResponse represents the response structure for token exchange
@@ -108,14 +108,14 @@ func ExchangeAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
 	}
 
 	// Set user information from claims
-	response.User.ID = claims.User.Id
-	response.User.Username = claims.User.Name
-	response.User.Name = claims.User.DisplayName
-	response.User.Email = claims.User.Email
+	response.User.ID = claims.Subject
+	response.User.Username = claims.Username
+	response.User.Name = claims.Name
+	response.User.Email = claims.Email
 
 	bundle.Log.Info("Token exchange successful", map[string]any{
-		"user_id":    claims.User.Id,
-		"username":   claims.User.Name,
+		"user_id":    claims.Subject,
+		"username":   claims.Username,
 		"session_id": session.SessionID,
 	})
 

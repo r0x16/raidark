@@ -6,7 +6,7 @@ import (
 	"github.com/r0x16/Raidark/api/auth/domain/model"
 	"github.com/r0x16/Raidark/api/auth/domain/repositories"
 	domauth "github.com/r0x16/Raidark/shared/domain/auth"
-	"golang.org/x/oauth2"
+	"github.com/r0x16/Raidark/shared/domain/model/auth"
 	"gorm.io/gorm"
 )
 
@@ -23,7 +23,7 @@ func NewAuthRefreshService(sessionRepo repositories.SessionRepository, authProvi
 }
 
 // RefreshTokens refreshes access token using refresh token from session
-func (s *AuthRefreshService) RefreshTokens(sessionID, userAgent, ipAddress string) (*model.AuthSession, *oauth2.Token, error) {
+func (s *AuthRefreshService) RefreshTokens(sessionID, userAgent, ipAddress string) (*model.AuthSession, *auth.Token, error) {
 	// Find session by ID using repository
 	session, err := s.GetSessionRepo().FindBySessionID(sessionID)
 	if err != nil {

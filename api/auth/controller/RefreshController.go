@@ -59,40 +59,33 @@ func RefreshAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
 	// Attempt to refresh tokens
 	session, token, err := authService.RefreshTokens(sessionID, userAgent, ipAddress)
 	if err != nil {
-		bundle.Log.Error("Failed to refresh tokens", map[string]any{
+		bundle.Log.Warning("Failed to refresh tokens", map[string]any{
 			"error":      err.Error(),
 			"session_id": sessionID,
 		})
-
-		// Check if session was not found or expired
-		if err.Error() == "session not found" || err.Error() == "refresh token expired" {
-			// Clear the invalid cookie
-			cookie := &http.Cookie{
-				Name:     "raidark_session",
-				Value:    "",
-				Path:     "/",
-				HttpOnly: true,
-				MaxAge:   -1,
-			}
-			c.SetCookie(cookie)
-
-			return c.JSON(http.StatusUnauthorized, map[string]string{
-				"error": "Session expired or invalid",
-			})
-		}
-
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Failed to refresh token",
+		return c.JSON(http.StatusUnauthorized, map[string]string{
+			"error": "Token refresh failed",
 		})
 	}
 
-	// Calculate expires in seconds
+	// Update session cookie expiry
+	refreshCookie := &http.Cookie{
+		Name:     "raidark_session",
+		Value:    session.SessionID,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false, // Set to true in production with HTTPS
+		SameSite: http.SameSiteStrictMode,
+		Expires:  session.RefreshExpiry,
+	}
+	c.SetCookie(refreshCookie)
+
+	// Prepare response
 	expiresIn := int64(0)
 	if !token.Expiry.IsZero() {
 		expiresIn = int64(time.Until(token.Expiry).Seconds())
 	}
 
-	// Prepare successful response
 	response := RefreshResponse{
 		AccessToken: token.AccessToken,
 		TokenType:   "Bearer",
@@ -100,9 +93,9 @@ func RefreshAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
 	}
 
 	bundle.Log.Info("Token refresh successful", map[string]any{
-		"session_id": sessionID,
 		"user_id":    session.UserID,
 		"username":   session.Username,
+		"session_id": session.SessionID,
 	})
 
 	return c.JSON(http.StatusOK, response)
