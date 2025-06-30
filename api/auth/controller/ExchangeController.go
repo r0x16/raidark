@@ -68,7 +68,7 @@ func ExchangeAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
 
 	// Initialize repository and auth service using dependency injection
 	sessionRepo := repositories.NewGormSessionRepository(dbProvider.Connection)
-	authService := service.NewAuthService(sessionRepo, bundle.Auth)
+	authService := service.NewAuthExchangeService(sessionRepo, bundle.Auth)
 
 	// Exchange code for tokens and create session
 	session, token, claims, err := authService.ExchangeCodeForTokens(req.Code, req.State, userAgent, ipAddress)

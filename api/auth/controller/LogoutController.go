@@ -64,7 +64,7 @@ func LogoutAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
 
 	// Initialize repository and auth service using dependency injection
 	sessionRepo := repositories.NewGormSessionRepository(dbProvider.Connection)
-	authService := service.NewAuthService(sessionRepo, bundle.Auth)
+	authService := service.NewAuthLogoutService(sessionRepo, bundle.Auth)
 
 	// Invalidate session in database
 	err = authService.InvalidateSession(sessionID)
