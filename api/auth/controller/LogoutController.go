@@ -4,17 +4,12 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/r0x16/Raidark/api/auth/domain"
 	"github.com/r0x16/Raidark/api/auth/drivers/repositories"
 	"github.com/r0x16/Raidark/api/auth/service"
 	"github.com/r0x16/Raidark/api/drivers"
 	"github.com/r0x16/Raidark/shared/driver/db"
 )
-
-// LogoutResponse represents the response structure for logout
-type LogoutResponse struct {
-	Message string `json:"message"`
-	Success bool   `json:"success"`
-}
 
 func LogoutAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
 	// Get database connection
@@ -36,7 +31,7 @@ func LogoutAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
 			"ip": c.RealIP(),
 		})
 
-		response := LogoutResponse{
+		response := domain.LogoutResponse{
 			Message: "Already logged out",
 			Success: true,
 		}
@@ -55,7 +50,7 @@ func LogoutAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
 		}
 		c.SetCookie(clearCookie)
 
-		response := LogoutResponse{
+		response := domain.LogoutResponse{
 			Message: "Invalid session cleared",
 			Success: true,
 		}
@@ -98,7 +93,7 @@ func LogoutAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
 		"ip":         c.RealIP(),
 	})
 
-	response := LogoutResponse{
+	response := domain.LogoutResponse{
 		Message: "Logged out successfully",
 		Success: true,
 	}

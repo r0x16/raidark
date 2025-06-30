@@ -5,32 +5,12 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/r0x16/Raidark/api/auth/domain"
 	"github.com/r0x16/Raidark/api/auth/drivers/repositories"
 	"github.com/r0x16/Raidark/api/auth/service"
 	"github.com/r0x16/Raidark/api/drivers"
 	"github.com/r0x16/Raidark/shared/driver/db"
 )
-
-// ExchangeRequest represents the request structure for token exchange
-type ExchangeRequest struct {
-	Code  string `json:"code" form:"code"`
-	State string `json:"state" form:"state"`
-}
-
-// ExchangeResponse represents the response structure for token exchange
-// NOTE: RefreshToken is intentionally NOT included for security reasons.
-// Refresh tokens must never be exposed to the frontend and are stored securely in the backend session.
-type ExchangeResponse struct {
-	AccessToken string `json:"access_token"`
-	TokenType   string `json:"token_type"`
-	ExpiresIn   int64  `json:"expires_in"`
-	User        struct {
-		ID       string `json:"id"`
-		Username string `json:"username"`
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-	} `json:"user"`
-}
 
 func ExchangeAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
 	// Get database connection
@@ -45,7 +25,7 @@ func ExchangeAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
 	}
 
 	// Parse request
-	var req ExchangeRequest
+	var req domain.ExchangeRequest
 	if err := c.Bind(&req); err != nil {
 		bundle.Log.Warning("Invalid exchange request", map[string]any{
 			"error": err.Error(),
@@ -101,7 +81,7 @@ func ExchangeAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
 		expiresIn = int64(time.Until(token.Expiry).Seconds())
 	}
 
-	response := ExchangeResponse{
+	response := domain.ExchangeResponse{
 		AccessToken: token.AccessToken,
 		TokenType:   "Bearer",
 		ExpiresIn:   expiresIn,

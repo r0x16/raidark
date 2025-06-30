@@ -5,18 +5,12 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/r0x16/Raidark/api/auth/domain"
 	"github.com/r0x16/Raidark/api/auth/drivers/repositories"
 	"github.com/r0x16/Raidark/api/auth/service"
 	"github.com/r0x16/Raidark/api/drivers"
 	"github.com/r0x16/Raidark/shared/driver/db"
 )
-
-// RefreshResponse represents the response structure for token refresh
-type RefreshResponse struct {
-	AccessToken string `json:"access_token"`
-	TokenType   string `json:"token_type"`
-	ExpiresIn   int64  `json:"expires_in"`
-}
 
 func RefreshAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
 	// Get database connection
@@ -86,7 +80,7 @@ func RefreshAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
 		expiresIn = int64(time.Until(token.Expiry).Seconds())
 	}
 
-	response := RefreshResponse{
+	response := domain.RefreshResponse{
 		AccessToken: token.AccessToken,
 		TokenType:   "Bearer",
 		ExpiresIn:   expiresIn,
