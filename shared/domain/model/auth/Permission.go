@@ -1,25 +1,31 @@
 package auth
 
-// Permission represents a permission in the domain
+import "github.com/casdoor/casdoor-go-sdk/casdoorsdk"
+
+// Permission represents a permission in the domain using composition with Casdoor SDK
 type Permission struct {
-	Owner        string
-	Name         string
-	CreatedTime  string
-	DisplayName  string
-	Description  string
-	Users        []string
-	Groups       []string
-	Roles        []string
-	Domains      []string
-	Model        string
-	Adapter      string
-	ResourceType string
-	Resources    []string
-	Actions      []string
-	Effect       string
-	IsEnabled    bool
-	Submitter    string
-	Approver     string
-	ApproveTime  string
-	State        string
+	casdoorsdk.Permission // Embed Casdoor permission struct for direct access to all fields
+}
+
+// Business methods for domain logic
+func (p *Permission) IsActive() bool {
+	return p.IsEnabled && p.Name != ""
+}
+
+func (p *Permission) HasUser(username string) bool {
+	for _, user := range p.Users {
+		if user == username {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *Permission) HasRole(roleName string) bool {
+	for _, role := range p.Roles {
+		if role == roleName {
+			return true
+		}
+	}
+	return false
 }

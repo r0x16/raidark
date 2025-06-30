@@ -122,7 +122,8 @@ func (c *CasdoorAuthProvider) GetUser(username string) (*auth.User, error) {
 		return nil, newCasdoorErrorWithCause(fmt.Sprintf("failed to get user: %s", username), err)
 	}
 
-	return c.convertCasdoorUserToDomainUser(casdoorUser), nil
+	// Pure composition - direct embedding
+	return &auth.User{User: *casdoorUser}, nil
 }
 
 // GetUsers gets all users
@@ -136,9 +137,10 @@ func (c *CasdoorAuthProvider) GetUsers() ([]*auth.User, error) {
 		return nil, newCasdoorErrorWithCause("failed to get users", err)
 	}
 
+	// Pure composition conversion
 	domainUsers := make([]*auth.User, len(casdoorUsers))
 	for i, casdoorUser := range casdoorUsers {
-		domainUsers[i] = c.convertCasdoorUserToDomainUser(casdoorUser)
+		domainUsers[i] = &auth.User{User: *casdoorUser}
 	}
 
 	return domainUsers, nil
@@ -150,8 +152,8 @@ func (c *CasdoorAuthProvider) AddUser(user *auth.User) (bool, error) {
 		return false, newCasdoorError("client not initialized")
 	}
 
-	casdoorUser := c.convertDomainUserToCasdoorUser(user)
-	success, err := c.client.AddUser(casdoorUser)
+	// Direct access to embedded Casdoor user
+	success, err := c.client.AddUser(&user.User)
 	if err != nil {
 		return false, newCasdoorErrorWithCause("failed to add user", err)
 	}
@@ -165,8 +167,8 @@ func (c *CasdoorAuthProvider) UpdateUser(user *auth.User) (bool, error) {
 		return false, newCasdoorError("client not initialized")
 	}
 
-	casdoorUser := c.convertDomainUserToCasdoorUser(user)
-	success, err := c.client.UpdateUser(casdoorUser)
+	// Direct access to embedded Casdoor user
+	success, err := c.client.UpdateUser(&user.User)
 	if err != nil {
 		return false, newCasdoorErrorWithCause("failed to update user", err)
 	}
@@ -180,8 +182,8 @@ func (c *CasdoorAuthProvider) DeleteUser(user *auth.User) (bool, error) {
 		return false, newCasdoorError("client not initialized")
 	}
 
-	casdoorUser := c.convertDomainUserToCasdoorUser(user)
-	success, err := c.client.DeleteUser(casdoorUser)
+	// Direct access to embedded Casdoor user
+	success, err := c.client.DeleteUser(&user.User)
 	if err != nil {
 		return false, newCasdoorErrorWithCause("failed to delete user", err)
 	}
@@ -204,7 +206,7 @@ func (c *CasdoorAuthProvider) HealthCheck() error {
 	return nil
 }
 
-// Conversion functions
+// Simplified conversion functions
 
 func (c *CasdoorAuthProvider) convertOAuth2TokenToDomainToken(token *oauth2.Token) *auth.Token {
 	return &auth.Token{
@@ -243,319 +245,4 @@ func (c *CasdoorAuthProvider) convertCasdoorClaimsToDomainClaims(claims *casdoor
 	}
 
 	return domainClaims
-}
-
-func (c *CasdoorAuthProvider) convertCasdoorUserToDomainUser(user *casdoorsdk.User) *auth.User {
-	domainUser := &auth.User{
-		Owner:               user.Owner,
-		Name:                user.Name,
-		CreatedTime:         user.CreatedTime,
-		UpdatedTime:         user.UpdatedTime,
-		ID:                  user.Id,
-		Type:                user.Type,
-		Password:            user.Password,
-		PasswordSalt:        user.PasswordSalt,
-		DisplayName:         user.DisplayName,
-		FirstName:           user.FirstName,
-		LastName:            user.LastName,
-		Avatar:              user.Avatar,
-		PermanentAvatar:     user.PermanentAvatar,
-		Email:               user.Email,
-		EmailVerified:       user.EmailVerified,
-		Phone:               user.Phone,
-		PhoneVerified:       false, // Field not available in casdoorsdk.User
-		CountryCode:         user.CountryCode,
-		Region:              user.Region,
-		Location:            user.Location,
-		Address:             user.Address,
-		Affiliation:         user.Affiliation,
-		Title:               user.Title,
-		IdCardType:          user.IdCardType,
-		IdCard:              user.IdCard,
-		Homepage:            user.Homepage,
-		Bio:                 user.Bio,
-		Language:            user.Language,
-		Gender:              user.Gender,
-		Birthday:            user.Birthday,
-		Education:           user.Education,
-		Score:               user.Score,
-		Karma:               user.Karma,
-		Ranking:             user.Ranking,
-		IsOnline:            user.IsOnline,
-		IsAdmin:             user.IsAdmin,
-		IsGlobalAdmin:       false, // Field not available in casdoorsdk.User
-		IsForbidden:         user.IsForbidden,
-		IsDeleted:           user.IsDeleted,
-		SignupApplication:   user.SignupApplication,
-		Hash:                user.Hash,
-		PreHash:             user.PreHash,
-		CreatedIP:           user.CreatedIp,
-		LastSigninTime:      user.LastSigninTime,
-		LastSigninIP:        user.LastSigninIp,
-		GitHub:              user.GitHub,
-		Google:              user.Google,
-		QQ:                  user.QQ,
-		WeChat:              user.WeChat,
-		Facebook:            user.Facebook,
-		DingTalk:            user.DingTalk,
-		Weibo:               user.Weibo,
-		Gitee:               user.Gitee,
-		LinkedIn:            user.LinkedIn,
-		Wecom:               user.Wecom,
-		Lark:                user.Lark,
-		Gitlab:              user.Gitlab,
-		ADFS:                user.Adfs,
-		Baidu:               user.Baidu,
-		Alipay:              user.Alipay,
-		Casdoor:             user.Casdoor,
-		Infoflow:            user.Infoflow,
-		Apple:               user.Apple,
-		AzureAD:             user.AzureAD,
-		Slack:               user.Slack,
-		Steam:               user.Steam,
-		Bilibili:            user.Bilibili,
-		Okta:                user.Okta,
-		Douyin:              user.Douyin,
-		Line:                user.Line,
-		Amazon:              user.Amazon,
-		Instagram:           user.Instagram,
-		TikTok:              user.TikTok,
-		Dropbox:             user.Dropbox,
-		Yahoo:               user.Yahoo,
-		Yandex:              user.Yandex,
-		StackOverflow:       "", // Field not available in casdoorsdk.User
-		Tumblr:              user.Tumblr,
-		Mailru:              user.Mailru,
-		Battle:              "", // Field not available in casdoorsdk.User
-		Uber:                user.Uber,
-		NextCloud:           user.Nextcloud,
-		Naver:               user.Naver,
-		Kakao:               user.Kakao,
-		VK:                  user.VK,
-		Patreon:             user.Patreon,
-		Custom:              user.Custom,
-		Ldap:                user.Ldap,
-		Properties:          user.Properties,
-		Groups:              user.Groups,
-		LastSigninWrongTime: user.LastSigninWrongTime,
-		SigninWrongTimes:    user.SigninWrongTimes,
-		Tag:                 user.Tag,
-	}
-
-	// Convert roles
-	if user.Roles != nil {
-		domainUser.Roles = make([]*auth.Role, len(user.Roles))
-		for i, role := range user.Roles {
-			domainUser.Roles[i] = &auth.Role{
-				Owner:       role.Owner,
-				Name:        role.Name,
-				CreatedTime: role.CreatedTime,
-				DisplayName: role.DisplayName,
-				Description: role.Description,
-				Users:       role.Users,
-				Groups:      role.Groups,
-				Domains:     role.Domains,
-			}
-		}
-	}
-
-	// Convert permissions
-	if user.Permissions != nil {
-		domainUser.Permissions = make([]*auth.Permission, len(user.Permissions))
-		for i, perm := range user.Permissions {
-			domainUser.Permissions[i] = &auth.Permission{
-				Owner:        perm.Owner,
-				Name:         perm.Name,
-				CreatedTime:  perm.CreatedTime,
-				DisplayName:  perm.DisplayName,
-				Description:  perm.Description,
-				Users:        perm.Users,
-				Groups:       perm.Groups,
-				Roles:        perm.Roles,
-				Domains:      perm.Domains,
-				Model:        perm.Model,
-				Adapter:      perm.Adapter,
-				ResourceType: perm.ResourceType,
-				Resources:    perm.Resources,
-				Actions:      perm.Actions,
-				Effect:       perm.Effect,
-				IsEnabled:    perm.IsEnabled,
-				Submitter:    perm.Submitter,
-				Approver:     perm.Approver,
-				ApproveTime:  perm.ApproveTime,
-				State:        perm.State,
-			}
-		}
-	}
-
-	// Convert managed accounts
-	if user.ManagedAccounts != nil {
-		domainUser.ManagedAccounts = make([]auth.ManagedAccount, len(user.ManagedAccounts))
-		for i, account := range user.ManagedAccounts {
-			domainUser.ManagedAccounts[i] = auth.ManagedAccount{
-				Application: account.Application,
-				Username:    account.Username,
-				Password:    account.Password,
-				SigninURL:   account.SigninUrl,
-			}
-		}
-	}
-
-	return domainUser
-}
-
-func (c *CasdoorAuthProvider) convertDomainUserToCasdoorUser(user *auth.User) *casdoorsdk.User {
-	casdoorUser := &casdoorsdk.User{
-		Owner:               user.Owner,
-		Name:                user.Name,
-		CreatedTime:         user.CreatedTime,
-		UpdatedTime:         user.UpdatedTime,
-		Id:                  user.ID,
-		Type:                user.Type,
-		Password:            user.Password,
-		PasswordSalt:        user.PasswordSalt,
-		DisplayName:         user.DisplayName,
-		FirstName:           user.FirstName,
-		LastName:            user.LastName,
-		Avatar:              user.Avatar,
-		PermanentAvatar:     user.PermanentAvatar,
-		Email:               user.Email,
-		EmailVerified:       user.EmailVerified,
-		Phone:               user.Phone,
-		CountryCode:         user.CountryCode,
-		Region:              user.Region,
-		Location:            user.Location,
-		Address:             user.Address,
-		Affiliation:         user.Affiliation,
-		Title:               user.Title,
-		IdCardType:          user.IdCardType,
-		IdCard:              user.IdCard,
-		Homepage:            user.Homepage,
-		Bio:                 user.Bio,
-		Language:            user.Language,
-		Gender:              user.Gender,
-		Birthday:            user.Birthday,
-		Education:           user.Education,
-		Score:               user.Score,
-		Karma:               user.Karma,
-		Ranking:             user.Ranking,
-		IsOnline:            user.IsOnline,
-		IsAdmin:             user.IsAdmin,
-		IsForbidden:         user.IsForbidden,
-		IsDeleted:           user.IsDeleted,
-		SignupApplication:   user.SignupApplication,
-		Hash:                user.Hash,
-		PreHash:             user.PreHash,
-		CreatedIp:           user.CreatedIP,
-		LastSigninTime:      user.LastSigninTime,
-		LastSigninIp:        user.LastSigninIP,
-		GitHub:              user.GitHub,
-		Google:              user.Google,
-		QQ:                  user.QQ,
-		WeChat:              user.WeChat,
-		Facebook:            user.Facebook,
-		DingTalk:            user.DingTalk,
-		Weibo:               user.Weibo,
-		Gitee:               user.Gitee,
-		LinkedIn:            user.LinkedIn,
-		Wecom:               user.Wecom,
-		Lark:                user.Lark,
-		Gitlab:              user.Gitlab,
-		Adfs:                user.ADFS,
-		Baidu:               user.Baidu,
-		Alipay:              user.Alipay,
-		Casdoor:             user.Casdoor,
-		Infoflow:            user.Infoflow,
-		Apple:               user.Apple,
-		AzureAD:             user.AzureAD,
-		Slack:               user.Slack,
-		Steam:               user.Steam,
-		Bilibili:            user.Bilibili,
-		Okta:                user.Okta,
-		Douyin:              user.Douyin,
-		Line:                user.Line,
-		Amazon:              user.Amazon,
-		Instagram:           user.Instagram,
-		TikTok:              user.TikTok,
-		Dropbox:             user.Dropbox,
-		Yahoo:               user.Yahoo,
-		Yandex:              user.Yandex,
-		Tumblr:              user.Tumblr,
-		Mailru:              user.Mailru,
-		Uber:                user.Uber,
-		Nextcloud:           user.NextCloud,
-		Naver:               user.Naver,
-		Kakao:               user.Kakao,
-		VK:                  user.VK,
-		Patreon:             user.Patreon,
-		Custom:              user.Custom,
-		Ldap:                user.Ldap,
-		Properties:          user.Properties,
-		Groups:              user.Groups,
-		LastSigninWrongTime: user.LastSigninWrongTime,
-		SigninWrongTimes:    user.SigninWrongTimes,
-		Tag:                 user.Tag,
-	}
-
-	// Convert roles
-	if user.Roles != nil {
-		casdoorUser.Roles = make([]*casdoorsdk.Role, len(user.Roles))
-		for i, role := range user.Roles {
-			casdoorUser.Roles[i] = &casdoorsdk.Role{
-				Owner:       role.Owner,
-				Name:        role.Name,
-				CreatedTime: role.CreatedTime,
-				DisplayName: role.DisplayName,
-				Description: role.Description,
-				Users:       role.Users,
-				Groups:      role.Groups,
-				Domains:     role.Domains,
-			}
-		}
-	}
-
-	// Convert permissions
-	if user.Permissions != nil {
-		casdoorUser.Permissions = make([]*casdoorsdk.Permission, len(user.Permissions))
-		for i, perm := range user.Permissions {
-			casdoorUser.Permissions[i] = &casdoorsdk.Permission{
-				Owner:        perm.Owner,
-				Name:         perm.Name,
-				CreatedTime:  perm.CreatedTime,
-				DisplayName:  perm.DisplayName,
-				Description:  perm.Description,
-				Users:        perm.Users,
-				Groups:       perm.Groups,
-				Roles:        perm.Roles,
-				Domains:      perm.Domains,
-				Model:        perm.Model,
-				Adapter:      perm.Adapter,
-				ResourceType: perm.ResourceType,
-				Resources:    perm.Resources,
-				Actions:      perm.Actions,
-				Effect:       perm.Effect,
-				IsEnabled:    perm.IsEnabled,
-				Submitter:    perm.Submitter,
-				Approver:     perm.Approver,
-				ApproveTime:  perm.ApproveTime,
-				State:        perm.State,
-			}
-		}
-	}
-
-	// Convert managed accounts
-	if user.ManagedAccounts != nil {
-		accounts := make([]casdoorsdk.ManagedAccount, len(user.ManagedAccounts))
-		for i, account := range user.ManagedAccounts {
-			accounts[i] = casdoorsdk.ManagedAccount{
-				Application: account.Application,
-				Username:    account.Username,
-				Password:    account.Password,
-				SigninUrl:   account.SigninURL,
-			}
-		}
-		casdoorUser.ManagedAccounts = accounts
-	}
-
-	return casdoorUser
 }
