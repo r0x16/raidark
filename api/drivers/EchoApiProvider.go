@@ -80,16 +80,19 @@ func (e *EchoApiProvider) configureCSRF() {
 	tokenLength := e.Bundle.Env.GetInt("CSRF_TOKEN_LENGTH", 32)
 	cookieName := e.Bundle.Env.GetString("CSRF_COOKIE_NAME", "_csrf")
 	cookieSecure := e.Bundle.Env.GetBool("CSRF_COOKIE_SECURE", false)
+	tokenLookup := e.Bundle.Env.GetString("CSRF_TOKEN_LOOKUP", "cookie:_csrf")
+	cookieMaxAge := e.Bundle.Env.GetInt("CSRF_COOKIE_MAX_AGE", 86400)
 
 	csrfConfig := middleware.CSRFConfig{
 		Skipper:        middleware.DefaultSkipper,
 		TokenLength:    uint8(tokenLength),
-		TokenLookup:    "header:X-CSRF-Token,form:_csrf,query:_csrf",
+		TokenLookup:    tokenLookup,
 		ContextKey:     "csrf",
 		CookieName:     cookieName,
 		CookieSecure:   cookieSecure, // Set to true in production with HTTPS
 		CookieHTTPOnly: true,
 		CookieSameSite: http.SameSiteStrictMode,
+		CookieMaxAge:   cookieMaxAge,
 	}
 
 	e.Server.Use(middleware.CSRFWithConfig(csrfConfig))
