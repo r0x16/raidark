@@ -8,7 +8,6 @@ import (
 	"github.com/r0x16/Raidark/api/auth/domain/model"
 	"github.com/r0x16/Raidark/api/auth/domain/repositories"
 	domauth "github.com/r0x16/Raidark/shared/domain/auth"
-	"gorm.io/gorm"
 )
 
 // AuthService base service with common authentication functionalities
@@ -29,9 +28,6 @@ func NewAuthService(sessionRepo repositories.SessionRepository, authProvider dom
 func (s *AuthService) GetSessionByID(sessionID string) (*model.AuthSession, error) {
 	session, err := s.sessionRepo.FindBySessionID(sessionID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("session not found")
-		}
 		return nil, fmt.Errorf("failed to find session: %w", err)
 	}
 

@@ -7,7 +7,6 @@ import (
 	"github.com/r0x16/Raidark/api/auth/domain/repositories"
 	domauth "github.com/r0x16/Raidark/shared/domain/auth"
 	"github.com/r0x16/Raidark/shared/domain/model/auth"
-	"gorm.io/gorm"
 )
 
 // AuthRefreshService handles token refresh functionality
@@ -27,9 +26,6 @@ func (s *AuthRefreshService) RefreshTokens(sessionID, userAgent, ipAddress strin
 	// Find session by ID using repository
 	session, err := s.GetSessionRepo().FindBySessionID(sessionID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, nil, fmt.Errorf("session not found")
-		}
 		return nil, nil, fmt.Errorf("failed to find session: %w", err)
 	}
 

@@ -5,7 +5,6 @@ import (
 
 	"github.com/r0x16/Raidark/api/auth/domain/repositories"
 	domauth "github.com/r0x16/Raidark/shared/domain/auth"
-	"gorm.io/gorm"
 )
 
 // AuthLogoutService handles logout functionality
@@ -25,9 +24,6 @@ func (s *AuthLogoutService) InvalidateSession(sessionID string) error {
 	// Find session first to ensure it exists
 	session, err := s.GetSessionRepo().FindBySessionID(sessionID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return fmt.Errorf("session not found")
-		}
 		return fmt.Errorf("failed to find session: %w", err)
 	}
 
