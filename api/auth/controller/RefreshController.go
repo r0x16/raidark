@@ -85,7 +85,7 @@ func (rc *RefreshController) getDatabaseProvider() (*db.GormPostgresDatabaseProv
 
 // getSessionFromCookie extracts and validates the session ID from the HTTP cookie
 func (rc *RefreshController) getSessionFromCookie(c echo.Context) (string, error) {
-	cookie, err := c.Cookie("raidark_session")
+	cookie, err := c.Cookie("app_session")
 	if err != nil {
 		rc.bundle.Log.Warning("No session cookie found", map[string]any{
 			"error": err.Error(),
@@ -130,7 +130,7 @@ func (rc *RefreshController) refreshTokens(authService *service.AuthRefreshServi
 // updateSessionCookie updates the session cookie with new expiry time
 func (rc *RefreshController) updateSessionCookie(c echo.Context, session *model.AuthSession) {
 	refreshCookie := &http.Cookie{
-		Name:     "raidark_session",
+		Name:     "app_session",
 		Value:    session.SessionID,
 		Path:     "/",
 		HttpOnly: true,

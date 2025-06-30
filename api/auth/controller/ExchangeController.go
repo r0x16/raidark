@@ -134,7 +134,7 @@ func (ec *ExchangeController) exchangeCodeForTokens(authService *service.AuthExc
 // setSessionCookie sets the secure session cookie in the HTTP response
 func (ec *ExchangeController) setSessionCookie(c echo.Context, session *model.AuthSession) {
 	cookie := &http.Cookie{
-		Name:     "raidark_session",
+		Name:     "app_session",
 		Value:    session.SessionID,
 		Path:     "/",
 		HttpOnly: true,

@@ -80,7 +80,7 @@ func (lc *LogoutController) getDatabaseProvider() (*db.GormPostgresDatabaseProvi
 
 // getSessionFromCookie extracts the session ID from the HTTP cookie
 func (lc *LogoutController) getSessionFromCookie(c echo.Context) (string, error) {
-	cookie, err := c.Cookie("raidark_session")
+	cookie, err := c.Cookie("app_session")
 	if err != nil {
 		return "", err
 	}
@@ -148,7 +148,7 @@ func (lc *LogoutController) handleSessionInvalidationError(sessionID string, err
 // clearSessionCookie clears the session cookie from the HTTP response
 func (lc *LogoutController) clearSessionCookie(c echo.Context) {
 	clearCookie := &http.Cookie{
-		Name:     "raidark_session",
+		Name:     "app_session",
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
