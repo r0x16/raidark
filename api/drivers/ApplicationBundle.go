@@ -5,16 +5,18 @@ import (
 	"github.com/r0x16/Raidark/shared/domain"
 	domauth "github.com/r0x16/Raidark/shared/domain/auth"
 	"github.com/r0x16/Raidark/shared/domain/logger"
+	"github.com/r0x16/Raidark/shared/driver/env"
 )
 
 /*
  * Represents the application bundle
- * This bundle contains the log manager and the database provider
+ * This bundle contains the log manager, database provider, auth provider, and environment provider
  */
 type ApplicationBundle struct {
 	Log      logger.LogProvider
 	Database domain.DatabaseProvider
 	Auth     domauth.AuthProvider
+	Env      *env.EnvProvider
 }
 
 /*

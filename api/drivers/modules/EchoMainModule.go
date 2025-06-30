@@ -24,5 +24,22 @@ func (e *EchoMainModule) Setup() error {
 	e.Api.Server.GET("/health", func(c echo.Context) error {
 		return c.String(http.StatusOK, "OK")
 	})
+
+	// CSRF token endpoint for frontend applications
+	e.Api.Server.GET("/csrf-token", func(c echo.Context) error {
+		// The CSRF token is automatically available in the context when CSRF middleware is enabled
+		token := c.Get("csrf")
+		if token == nil {
+			// CSRF middleware is disabled
+			return c.JSON(http.StatusOK, map[string]string{
+				"message": "CSRF protection is disabled",
+			})
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{
+			"csrf_token": token.(string),
+		})
+	})
+
 	return nil
 }

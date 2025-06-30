@@ -28,21 +28,77 @@ func NewEchoApiProvider(port string, bundle *ApplicationBundle) *EchoApiProvider
 	}
 }
 
-// Boot implements domain.ApiProvider.
+// Setup implements domain.ApiProvider.
 func (e *EchoApiProvider) Setup() error {
 	e.Server.Use(middleware.Recover())
 
-	// TODO: Define correct Headers and Origins CORS settings
-	e.Server.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		Skipper:      middleware.DefaultSkipper,
-		AllowHeaders: []string{"*"},
-		AllowOrigins: []string{"*"},
-		AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete},
-	}))
+	// Configure CORS middleware with environment variables
+	e.configureCORS()
+
+	// Configure CSRF middleware with environment variables
+	e.configureCSRF()
 
 	e.Server.Pre(middleware.RemoveTrailingSlash())
 
 	return nil
+}
+
+// configureCORS sets up CORS middleware using environment variables
+func (e *EchoApiProvider) configureCORS() {
+	allowOrigins := e.Bundle.Env.GetSlice("CORS_ALLOW_ORIGINS", []string{"*"})
+	allowHeaders := e.Bundle.Env.GetSlice("CORS_ALLOW_HEADERS", []string{"Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"})
+	allowMethods := e.Bundle.Env.GetSlice("CORS_ALLOW_METHODS", []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions, http.MethodHead})
+	allowCredentials := e.Bundle.Env.GetBool("CORS_ALLOW_CREDENTIALS", false)
+
+	corsConfig := middleware.CORSConfig{
+		Skipper:          middleware.DefaultSkipper,
+		AllowOrigins:     allowOrigins,
+		AllowHeaders:     allowHeaders,
+		AllowMethods:     allowMethods,
+		AllowCredentials: allowCredentials,
+	}
+
+	e.Server.Use(middleware.CORSWithConfig(corsConfig))
+
+	e.Bundle.Log.Info("CORS middleware configured", map[string]any{
+		"allow_origins":     allowOrigins,
+		"allow_headers":     allowHeaders,
+		"allow_methods":     allowMethods,
+		"allow_credentials": allowCredentials,
+	})
+}
+
+// configureCSRF sets up CSRF middleware using environment variables
+func (e *EchoApiProvider) configureCSRF() {
+	csrfEnabled := e.Bundle.Env.GetBool("CSRF_ENABLED", false)
+
+	if !csrfEnabled {
+		e.Bundle.Log.Info("CSRF middleware disabled by configuration", nil)
+		return
+	}
+
+	tokenLength := e.Bundle.Env.GetInt("CSRF_TOKEN_LENGTH", 32)
+	cookieName := e.Bundle.Env.GetString("CSRF_COOKIE_NAME", "_csrf")
+	cookieSecure := e.Bundle.Env.GetBool("CSRF_COOKIE_SECURE", false)
+
+	csrfConfig := middleware.CSRFConfig{
+		Skipper:        middleware.DefaultSkipper,
+		TokenLength:    uint8(tokenLength),
+		TokenLookup:    "header:X-CSRF-Token,form:_csrf,query:_csrf",
+		ContextKey:     "csrf",
+		CookieName:     cookieName,
+		CookieSecure:   cookieSecure, // Set to true in production with HTTPS
+		CookieHTTPOnly: true,
+		CookieSameSite: http.SameSiteStrictMode,
+	}
+
+	e.Server.Use(middleware.CSRFWithConfig(csrfConfig))
+
+	e.Bundle.Log.Info("CSRF middleware configured", map[string]any{
+		"token_length": tokenLength,
+		"cookie_name":  cookieName,
+		"enabled":      true,
+	})
 }
 
 // Run implements domain.ApiProvider.

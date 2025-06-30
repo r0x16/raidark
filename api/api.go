@@ -11,6 +11,7 @@ import (
 	"github.com/r0x16/Raidark/shared/domain/logger"
 	"github.com/r0x16/Raidark/shared/driver/auth"
 	"github.com/r0x16/Raidark/shared/driver/db"
+	"github.com/r0x16/Raidark/shared/driver/env"
 	stdlog "github.com/r0x16/Raidark/shared/driver/logger"
 )
 
@@ -27,6 +28,7 @@ func (a *Api) Run() {
 		Database: a.setupDatabase(),
 		Log:      a.setupLogger(),
 		Auth:     a.setupAuth(),
+		Env:      a.setupEnv(),
 	}
 	defer bundle.Database.Close()
 
@@ -89,4 +91,12 @@ func (d *Api) setupAuth() domauth.AuthProvider {
 		panic("Error initializing the auth provider:")
 	}
 	return authProvider
+}
+
+/*
+ * Setup the environment provider
+ * This method creates a new environment provider for configuration management
+ */
+func (d *Api) setupEnv() *env.EnvProvider {
+	return env.NewEnvProvider()
 }
