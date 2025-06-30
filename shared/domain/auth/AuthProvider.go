@@ -16,6 +16,9 @@ type AuthProvider interface {
 	// Exchange authorization code for access token
 	GetToken(code, state string) (*oauth2.Token, error)
 
+	// Refresh OAuth token using refresh token
+	RefreshToken(refreshToken string) (*oauth2.Token, error)
+
 	// Parse and validate JWT token
 	ParseToken(token string) (*casdoorsdk.Claims, error)
 

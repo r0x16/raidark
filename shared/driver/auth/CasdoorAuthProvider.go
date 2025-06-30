@@ -82,6 +82,20 @@ func (c *CasdoorAuthProvider) GetToken(code, state string) (*oauth2.Token, error
 	return token, nil
 }
 
+// RefreshToken refreshes OAuth token using refresh token
+func (c *CasdoorAuthProvider) RefreshToken(refreshToken string) (*oauth2.Token, error) {
+	if c.client == nil {
+		return nil, newCasdoorError("client not initialized")
+	}
+
+	token, err := c.client.RefreshOAuthToken(refreshToken)
+	if err != nil {
+		return nil, newCasdoorErrorWithCause("failed to refresh OAuth token", err)
+	}
+
+	return token, nil
+}
+
 // ParseToken parses and validates JWT token
 func (c *CasdoorAuthProvider) ParseToken(token string) (*casdoorsdk.Claims, error) {
 	if c.client == nil {

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/r0x16/Raidark/api/auth/drivers/repositories"
@@ -56,7 +57,7 @@ func RefreshAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
 	authService := service.NewAuthService(sessionRepo, bundle.Auth)
 
 	// Attempt to refresh tokens
-	_, _, err = authService.RefreshTokens(sessionID, userAgent, ipAddress)
+	session, token, err := authService.RefreshTokens(sessionID, userAgent, ipAddress)
 	if err != nil {
 		bundle.Log.Error("Failed to refresh tokens", map[string]any{
 			"error":      err.Error(),
@@ -80,28 +81,28 @@ func RefreshAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
 			})
 		}
 
-		// For the not implemented error, return appropriate status
-		if err.Error() == "refresh token functionality not yet implemented - requires custom HTTP client for Casdoor" {
-			return c.JSON(http.StatusNotImplemented, map[string]string{
-				"error": "Refresh token functionality not yet implemented",
-			})
-		}
-
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "Failed to refresh token",
 		})
 	}
 
-	// This part would be executed once refresh functionality is implemented
-	// For now, it's unreachable due to the error above
+	// Calculate expires in seconds
+	expiresIn := int64(0)
+	if !token.Expiry.IsZero() {
+		expiresIn = int64(time.Until(token.Expiry).Seconds())
+	}
+
+	// Prepare successful response
 	response := RefreshResponse{
-		AccessToken: "new_access_token_would_be_here",
+		AccessToken: token.AccessToken,
 		TokenType:   "Bearer",
-		ExpiresIn:   3600, // 1 hour
+		ExpiresIn:   expiresIn,
 	}
 
 	bundle.Log.Info("Token refresh successful", map[string]any{
 		"session_id": sessionID,
+		"user_id":    session.UserID,
+		"username":   session.Username,
 	})
 
 	return c.JSON(http.StatusOK, response)

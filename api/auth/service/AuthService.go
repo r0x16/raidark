@@ -87,10 +87,27 @@ func (s *AuthService) RefreshTokens(sessionID, userAgent, ipAddress string) (*mo
 		return nil, nil, fmt.Errorf("refresh token expired")
 	}
 
-	// Note: Casdoor SDK doesn't have direct refresh token method
-	// We need to handle this manually by making HTTP request to Casdoor
-	// For now, we'll return an error indicating this needs to be implemented
-	return nil, nil, fmt.Errorf("refresh token functionality not yet implemented - requires custom HTTP client for Casdoor")
+	// Use the auth provider to refresh the token
+	newToken, err := s.authProvider.RefreshToken(session.RefreshToken)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to refresh token: %w", err)
+	}
+
+	// Update session with new token information
+	session.AccessToken = newToken.AccessToken
+	if newToken.RefreshToken != "" {
+		session.RefreshToken = newToken.RefreshToken
+	}
+	session.ExpiresAt = newToken.Expiry
+	session.UserAgent = userAgent
+	session.IPAddress = ipAddress
+
+	// Save updated session to database
+	if err := s.sessionRepo.Update(session); err != nil {
+		return nil, nil, fmt.Errorf("failed to update session: %w", err)
+	}
+
+	return session, newToken, nil
 }
 
 // InvalidateSession removes session from database (logout)
