@@ -19,11 +19,12 @@ type RefreshController struct {
 	bundle *drivers.ApplicationBundle
 }
 
-// NewRefreshController creates a new instance of RefreshController
-func NewRefreshController(bundle *drivers.ApplicationBundle) *RefreshController {
-	return &RefreshController{
+// RefreshAction creates a RefreshController instance and delegates to the Refresh method
+func RefreshAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
+	controller := &RefreshController{
 		bundle: bundle,
 	}
+	return controller.Refresh(c)
 }
 
 // Refresh handles the token refresh process
@@ -164,10 +165,4 @@ func (rc *RefreshController) logSuccessfulRefresh(session *model.AuthSession) {
 		"username":   session.Username,
 		"session_id": session.SessionID,
 	})
-}
-
-// RefreshAction creates a RefreshController instance and delegates to the Refresh method
-func RefreshAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
-	controller := NewRefreshController(bundle)
-	return controller.Refresh(c)
 }

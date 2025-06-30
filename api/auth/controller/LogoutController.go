@@ -16,11 +16,12 @@ type LogoutController struct {
 	bundle *drivers.ApplicationBundle
 }
 
-// NewLogoutController creates a new instance of LogoutController
-func NewLogoutController(bundle *drivers.ApplicationBundle) *LogoutController {
-	return &LogoutController{
+// LogoutAction creates a LogoutController instance and delegates to the Logout method
+func LogoutAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
+	controller := &LogoutController{
 		bundle: bundle,
 	}
+	return controller.Logout(c)
 }
 
 // Logout handles the user logout process
@@ -162,10 +163,4 @@ func (lc *LogoutController) logSuccessfulLogout(sessionID, ipAddress string) {
 		"session_id": sessionID,
 		"ip":         ipAddress,
 	})
-}
-
-// LogoutAction creates a LogoutController instance and delegates to the Logout method
-func LogoutAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
-	controller := NewLogoutController(bundle)
-	return controller.Logout(c)
 }

@@ -19,11 +19,12 @@ type ExchangeController struct {
 	bundle *drivers.ApplicationBundle
 }
 
-// NewExchangeController creates a new instance of ExchangeController
-func NewExchangeController(bundle *drivers.ApplicationBundle) *ExchangeController {
-	return &ExchangeController{
+// ExchangeAction creates an ExchangeController instance and delegates to the Exchange method
+func ExchangeAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
+	controller := &ExchangeController{
 		bundle: bundle,
 	}
+	return controller.Exchange(c)
 }
 
 // Exchange handles the OAuth2 authorization code exchange process
@@ -174,10 +175,4 @@ func (ec *ExchangeController) logSuccessfulExchange(claims *auth.Claims, session
 		"username":   claims.Username,
 		"session_id": session.SessionID,
 	})
-}
-
-// ExchangeAction creates an ExchangeController instance and delegates to the Exchange method
-func ExchangeAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
-	controller := NewExchangeController(bundle)
-	return controller.Exchange(c)
 }
