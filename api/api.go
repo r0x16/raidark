@@ -7,7 +7,9 @@ import (
 	"github.com/r0x16/Raidark/api/drivers"
 	"github.com/r0x16/Raidark/api/drivers/modules"
 	"github.com/r0x16/Raidark/api/services"
+	domauth "github.com/r0x16/Raidark/shared/domain/auth"
 	"github.com/r0x16/Raidark/shared/domain/logger"
+	"github.com/r0x16/Raidark/shared/driver/auth"
 	"github.com/r0x16/Raidark/shared/driver/db"
 	stdlog "github.com/r0x16/Raidark/shared/driver/logger"
 )
@@ -24,6 +26,7 @@ func (a *Api) Run() {
 	bundle := &drivers.ApplicationBundle{
 		Database: a.setupDatabase(),
 		Log:      a.setupLogger(),
+		Auth:     a.setupAuth(),
 	}
 	defer bundle.Database.Close()
 
@@ -43,6 +46,7 @@ func (a *Api) Run() {
  */
 func (a *Api) registerModules(server *drivers.EchoApiProvider) {
 	server.Register(&modules.EchoMainModule{Api: server})
+	server.Register(&modules.EchoAuthModule{Api: server})
 	// Add more modules here
 }
 
@@ -71,4 +75,18 @@ func (d *Api) setupLogger() logger.LogProvider {
 	level := logger.ParseLogLevel(os.Getenv("LOG_LEVEL"))
 	logManager.SetLogLevel(level)
 	return logManager
+}
+
+/*
+ * Setup the auth provider
+ * This method creates a new casdoor auth provider and connects to the auth provider
+ */
+func (d *Api) setupAuth() domauth.AuthProvider {
+	authProvider := auth.NewCasdoorAuthProviderFromEnv()
+	err := authProvider.Initialize()
+	if err != nil {
+		fmt.Println(err)
+		panic("Error initializing the auth provider:")
+	}
+	return authProvider
 }
