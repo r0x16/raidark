@@ -66,6 +66,7 @@ func (a *Api) registerModules(server *drivers.EchoApiProvider) {
 		Validator: func(key string, c echo.Context) (bool, error) {
 			token, err := server.Bundle.Auth.ParseToken(key)
 			if err != nil {
+				fmt.Println(err)
 				return false, err
 			}
 			c.Set("user", token)
