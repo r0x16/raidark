@@ -4,8 +4,8 @@ import (
 	"github.com/labstack/echo/v4"
 	domauth "github.com/r0x16/Raidark/shared/auth/domain"
 	domdb "github.com/r0x16/Raidark/shared/domain"
-	"github.com/r0x16/Raidark/shared/domain/logger"
 	"github.com/r0x16/Raidark/shared/driver/env"
+	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
 )
 
 /*
@@ -13,7 +13,7 @@ import (
  * This bundle contains the log manager, database provider, auth provider, and environment provider
  */
 type ApplicationBundle struct {
-	Log      logger.LogProvider
+	Log      domlogger.LogProvider
 	Database domdb.DatabaseProvider
 	Auth     domauth.AuthProvider
 	Env      *env.EnvProvider

@@ -6,9 +6,9 @@ import (
 
 	"github.com/r0x16/Raidark/api/drivers"
 	"github.com/r0x16/Raidark/dbmigrate/controller"
-	"github.com/r0x16/Raidark/shared/domain/logger"
 	"github.com/r0x16/Raidark/shared/driver/db"
-	stdlog "github.com/r0x16/Raidark/shared/driver/logger"
+	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
+	drivelogger "github.com/r0x16/Raidark/shared/logger/driver"
 )
 
 type Seeder struct {
@@ -47,9 +47,9 @@ func (d *Seeder) setupDatabase() *db.GormMysqlDatabaseProvider {
 	return dbProvider
 }
 
-func (d *Seeder) setupLogger() logger.LogProvider {
-	logManager := stdlog.NewStdOutLogManager()
-	level := logger.ParseLogLevel(os.Getenv("LOG_LEVEL"))
+func (d *Seeder) setupLogger() domlogger.LogProvider {
+	logManager := drivelogger.NewStdOutLogManager()
+	level := domlogger.ParseLogLevel(os.Getenv("LOG_LEVEL"))
 	logManager.SetLogLevel(level)
 	return logManager
 }

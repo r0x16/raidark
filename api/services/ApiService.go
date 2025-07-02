@@ -2,16 +2,16 @@ package services
 
 import (
 	"github.com/r0x16/Raidark/api/domain"
-	"github.com/r0x16/Raidark/shared/domain/logger"
+	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
 )
 
 type ApiService struct {
 	api     domain.ApiProvider
 	modules []domain.ApiModule
-	log     logger.LogProvider
+	log     domlogger.LogProvider
 }
 
-func NewApiService(api domain.ApiProvider, log logger.LogProvider) *ApiService {
+func NewApiService(api domain.ApiProvider, log domlogger.LogProvider) *ApiService {
 	modules := api.ProvidesModules()
 	return &ApiService{
 		api,

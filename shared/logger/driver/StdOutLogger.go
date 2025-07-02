@@ -4,27 +4,27 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/r0x16/Raidark/shared/domain/logger"
+	"github.com/r0x16/Raidark/shared/logger/domain"
 )
 
 type StdOutLogManager struct {
 	logger   *slog.Logger
-	logLevel logger.LogLevel
+	logLevel domain.LogLevel
 }
 
-var _ logger.LogProvider = &StdOutLogManager{}
+var _ domain.LogProvider = &StdOutLogManager{}
 
 func NewStdOutLogManager() *StdOutLogManager {
 	manager := &StdOutLogManager{
 		logger:   slog.New(slog.NewJSONHandler(os.Stdout, nil)),
-		logLevel: logger.Info,
+		logLevel: domain.Info,
 	}
 	return manager
 }
 
 // Debug implements logger.LogProvider.
 func (s *StdOutLogManager) Debug(msg string, data map[string]any) {
-	if s.logLevel > logger.Debug {
+	if s.logLevel > domain.Debug {
 		return
 	}
 	s.logger.Debug(msg, s.parseData(data)...)
@@ -32,7 +32,7 @@ func (s *StdOutLogManager) Debug(msg string, data map[string]any) {
 
 // Info implements logger.LogProvider.
 func (s *StdOutLogManager) Info(msg string, data map[string]any) {
-	if s.logLevel > logger.Info {
+	if s.logLevel > domain.Info {
 		return
 	}
 	s.logger.Info(msg, s.parseData(data)...)
@@ -40,7 +40,7 @@ func (s *StdOutLogManager) Info(msg string, data map[string]any) {
 
 // Warning implements logger.LogProvider.
 func (s *StdOutLogManager) Warning(msg string, data map[string]any) {
-	if s.logLevel > logger.Warning {
+	if s.logLevel > domain.Warning {
 		return
 	}
 	s.logger.Warn(msg, s.parseData(data)...)
@@ -57,7 +57,7 @@ func (s *StdOutLogManager) Critical(msg string, data map[string]any) {
 }
 
 // SetLogLevel implements logger.LogProvider.
-func (s *StdOutLogManager) SetLogLevel(level logger.LogLevel) {
+func (s *StdOutLogManager) SetLogLevel(level domain.LogLevel) {
 	s.logLevel = level
 }
 

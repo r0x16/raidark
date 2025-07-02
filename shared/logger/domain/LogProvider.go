@@ -1,4 +1,4 @@
-package logger
+package domain
 
 type LogProvider interface {
 	Debug(msg string, data map[string]any)

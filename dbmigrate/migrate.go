@@ -6,9 +6,9 @@ import (
 
 	"github.com/r0x16/Raidark/api/drivers"
 	"github.com/r0x16/Raidark/dbmigrate/controller"
-	"github.com/r0x16/Raidark/shared/domain/logger"
 	"github.com/r0x16/Raidark/shared/driver/db"
-	stdlog "github.com/r0x16/Raidark/shared/driver/logger"
+	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
+	drivelogger "github.com/r0x16/Raidark/shared/logger/driver"
 )
 
 type Dbmigrate struct{}
@@ -55,9 +55,9 @@ func (d *Dbmigrate) setupDatabase() *db.GormPostgresDatabaseProvider {
  * Setup the logger
  * This method creates a new std out log manager and sets the log level
  */
-func (d *Dbmigrate) setupLogger() logger.LogProvider {
-	logManager := stdlog.NewStdOutLogManager()
-	level := logger.ParseLogLevel(os.Getenv("LOG_LEVEL"))
+func (d *Dbmigrate) setupLogger() domlogger.LogProvider {
+	logManager := drivelogger.NewStdOutLogManager()
+	level := domlogger.ParseLogLevel(os.Getenv("LOG_LEVEL"))
 	logManager.SetLogLevel(level)
 	return logManager
 }
