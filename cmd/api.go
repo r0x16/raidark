@@ -4,7 +4,7 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"github.com/r0x16/Raidark/api"
+	"github.com/r0x16/Raidark/shared/api"
 	"github.com/spf13/cobra"
 )
 

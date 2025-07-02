@@ -6,9 +6,9 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/r0x16/Raidark/api/drivers"
-	"github.com/r0x16/Raidark/api/drivers/modules"
-	"github.com/r0x16/Raidark/api/services"
+	driverapi "github.com/r0x16/Raidark/shared/api/driver"
+	apimodules "github.com/r0x16/Raidark/shared/api/driver/modules"
+	apiservices "github.com/r0x16/Raidark/shared/api/service"
 	"github.com/r0x16/Raidark/shared/auth/domain"
 	"github.com/r0x16/Raidark/shared/auth/driver"
 	domdatastore "github.com/r0x16/Raidark/shared/datastore/domain"
@@ -28,7 +28,7 @@ func NewApi() *Api {
 }
 
 func (a *Api) Run() {
-	bundle := &drivers.ApplicationBundle{
+	bundle := &driverapi.ApplicationBundle{
 		Database: a.setupDatabase(),
 		Log:      a.setupLogger(),
 		Auth:     a.setupAuth(),
@@ -37,11 +37,11 @@ func (a *Api) Run() {
 	defer bundle.Database.Close()
 
 	port := os.Getenv("API_PORT")
-	server := drivers.NewEchoApiProvider(port, bundle)
+	server := driverapi.NewEchoApiProvider(port, bundle)
 
 	a.registerModules(server)
 
-	service := services.NewApiService(server, bundle.Log)
+	service := apiservices.NewApiService(server, bundle.Log)
 	service.Run()
 
 }
@@ -50,14 +50,14 @@ func (a *Api) Run() {
  * Register the modules
  * This method registers the modules to the server
  */
-func (a *Api) registerModules(server *drivers.EchoApiProvider) {
+func (a *Api) registerModules(server *driverapi.EchoApiProvider) {
 
-	rootModule := modules.EchoModule{
+	rootModule := apimodules.EchoModule{
 		Api:   server,
 		Group: server.Server.Group(""),
 	}
 
-	apiv1Module := modules.EchoModule{
+	apiv1Module := apimodules.EchoModule{
 		Api:   server,
 		Group: server.Server.Group("/api/v1"),
 	}
@@ -76,9 +76,9 @@ func (a *Api) registerModules(server *drivers.EchoApiProvider) {
 		},
 	}))
 
-	server.Register(&modules.EchoMainModule{EchoModule: rootModule})
-	server.Register(&modules.EchoAuthModule{EchoModule: rootModule})
-	server.Register(&modules.EchoApiMainModule{EchoModule: apiv1Module})
+	server.Register(&apimodules.EchoMainModule{EchoModule: rootModule})
+	server.Register(&apimodules.EchoAuthModule{EchoModule: rootModule})
+	server.Register(&apimodules.EchoApiMainModule{EchoModule: apiv1Module})
 	// Add more modules here
 }
 

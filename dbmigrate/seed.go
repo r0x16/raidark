@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/r0x16/Raidark/api/drivers"
 	"github.com/r0x16/Raidark/dbmigrate/controller"
+	driverapi "github.com/r0x16/Raidark/shared/api/driver"
 	domdatastore "github.com/r0x16/Raidark/shared/datastore/domain"
 	driverdatastore "github.com/r0x16/Raidark/shared/datastore/driver"
 	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
@@ -20,7 +20,7 @@ func NewSeeder() *Seeder {
 }
 
 func (d *Seeder) Run() {
-	bundle := &drivers.ApplicationBundle{
+	bundle := &driverapi.ApplicationBundle{
 		Database: d.setupDatabase(),
 		Log:      d.setupLogger(),
 	}

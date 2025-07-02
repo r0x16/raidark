@@ -5,21 +5,21 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/r0x16/Raidark/api/drivers"
+	driverapi "github.com/r0x16/Raidark/shared/api/driver"
 	"github.com/r0x16/Raidark/shared/auth/domain"
 	"github.com/r0x16/Raidark/shared/auth/domain/model"
 	"github.com/r0x16/Raidark/shared/auth/driver/repositories"
 	"github.com/r0x16/Raidark/shared/auth/service"
-	"github.com/r0x16/Raidark/shared/datastore/driver"
+	driverdatastore "github.com/r0x16/Raidark/shared/datastore/driver"
 )
 
 // ExchangeController handles OAuth2 authorization code exchange operations
 type ExchangeController struct {
-	bundle *drivers.ApplicationBundle
+	bundle *driverapi.ApplicationBundle
 }
 
 // ExchangeAction creates an ExchangeController instance and delegates to the Exchange method
-func ExchangeAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
+func ExchangeAction(c echo.Context, bundle *driverapi.ApplicationBundle) error {
 	controller := &ExchangeController{
 		bundle: bundle,
 	}
@@ -70,8 +70,8 @@ func (ec *ExchangeController) Exchange(c echo.Context) error {
 }
 
 // getDatabaseProvider retrieves and validates the database provider from the bundle
-func (ec *ExchangeController) getDatabaseProvider() (*driver.GormPostgresDatabaseProvider, error) {
-	dbProvider, ok := ec.bundle.Database.(*driver.GormPostgresDatabaseProvider)
+func (ec *ExchangeController) getDatabaseProvider() (*driverdatastore.GormPostgresDatabaseProvider, error) {
+	dbProvider, ok := ec.bundle.Database.(*driverdatastore.GormPostgresDatabaseProvider)
 	if !ok {
 		ec.bundle.Log.Error("Failed to get database connection", map[string]any{
 			"error": "invalid database provider type",
@@ -111,7 +111,7 @@ func (ec *ExchangeController) extractClientInfo(c echo.Context) (string, string)
 }
 
 // initializeAuthService creates and returns an instance of the authentication service
-func (ec *ExchangeController) initializeAuthService(dbProvider *driver.GormPostgresDatabaseProvider) *service.AuthExchangeService {
+func (ec *ExchangeController) initializeAuthService(dbProvider *driverdatastore.GormPostgresDatabaseProvider) *service.AuthExchangeService {
 	sessionRepo := repositories.NewGormSessionRepository(dbProvider.GetDataStore().Exec)
 	return service.NewAuthExchangeService(sessionRepo, ec.bundle.Auth)
 }

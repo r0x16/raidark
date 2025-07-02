@@ -1,11 +1,11 @@
 package controller
 
 import (
-	"github.com/r0x16/Raidark/api/drivers"
+	driverapi "github.com/r0x16/Raidark/shared/api/driver"
 )
 
 type SeederController struct {
-	*drivers.ApplicationBundle
+	*driverapi.ApplicationBundle
 }
 
 func (c *SeederController) SeedAction() error {

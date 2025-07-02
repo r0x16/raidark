@@ -5,21 +5,21 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/r0x16/Raidark/api/drivers"
+	driverapi "github.com/r0x16/Raidark/shared/api/driver"
 	"github.com/r0x16/Raidark/shared/auth/domain"
 	"github.com/r0x16/Raidark/shared/auth/domain/model"
 	"github.com/r0x16/Raidark/shared/auth/driver/repositories"
 	"github.com/r0x16/Raidark/shared/auth/service"
-	"github.com/r0x16/Raidark/shared/datastore/driver"
+	driverdatastore "github.com/r0x16/Raidark/shared/datastore/driver"
 )
 
 // RefreshController handles token refresh operations
 type RefreshController struct {
-	bundle *drivers.ApplicationBundle
+	bundle *driverapi.ApplicationBundle
 }
 
 // RefreshAction creates a RefreshController instance and delegates to the Refresh method
-func RefreshAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
+func RefreshAction(c echo.Context, bundle *driverapi.ApplicationBundle) error {
 	controller := &RefreshController{
 		bundle: bundle,
 	}
@@ -71,8 +71,8 @@ func (rc *RefreshController) Refresh(c echo.Context) error {
 }
 
 // getDatabaseProvider retrieves and validates the database provider from the bundle
-func (rc *RefreshController) getDatabaseProvider() (*driver.GormPostgresDatabaseProvider, error) {
-	dbProvider, ok := rc.bundle.Database.(*driver.GormPostgresDatabaseProvider)
+func (rc *RefreshController) getDatabaseProvider() (*driverdatastore.GormPostgresDatabaseProvider, error) {
+	dbProvider, ok := rc.bundle.Database.(*driverdatastore.GormPostgresDatabaseProvider)
 	if !ok {
 		rc.bundle.Log.Error("Failed to get database connection", map[string]any{
 			"error": "invalid database provider type",
@@ -108,7 +108,7 @@ func (rc *RefreshController) extractClientInfo(c echo.Context) (string, string) 
 }
 
 // initializeAuthService creates and returns an instance of the refresh service
-func (rc *RefreshController) initializeAuthService(dbProvider *driver.GormPostgresDatabaseProvider) *service.AuthRefreshService {
+func (rc *RefreshController) initializeAuthService(dbProvider *driverdatastore.GormPostgresDatabaseProvider) *service.AuthRefreshService {
 	sessionRepo := repositories.NewGormSessionRepository(dbProvider.GetDataStore().Exec)
 	return service.NewAuthRefreshService(sessionRepo, rc.bundle.Auth)
 }

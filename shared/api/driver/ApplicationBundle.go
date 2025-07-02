@@ -1,4 +1,4 @@
-package drivers
+package driver
 
 import (
 	"github.com/labstack/echo/v4"

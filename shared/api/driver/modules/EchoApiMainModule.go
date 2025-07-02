@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/r0x16/Raidark/api/domain"
+	"github.com/r0x16/Raidark/shared/api/domain"
 )
 
 type EchoApiMainModule struct {

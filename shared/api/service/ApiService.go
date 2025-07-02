@@ -1,7 +1,7 @@
 package services
 
 import (
-	"github.com/r0x16/Raidark/api/domain"
+	"github.com/r0x16/Raidark/shared/api/domain"
 	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
 )
 

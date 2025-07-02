@@ -1,12 +1,12 @@
 package controller
 
 import (
-	"github.com/r0x16/Raidark/api/drivers"
+	driverapi "github.com/r0x16/Raidark/shared/api/driver"
 	driverdatastore "github.com/r0x16/Raidark/shared/datastore/driver"
 )
 
 type DbMigrationController struct {
-	*drivers.ApplicationBundle
+	*driverapi.ApplicationBundle
 }
 
 func (d *DbMigrationController) MigrateAction() error {

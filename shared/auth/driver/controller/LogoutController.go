@@ -4,20 +4,20 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/r0x16/Raidark/api/drivers"
+	driverapi "github.com/r0x16/Raidark/shared/api/driver"
 	"github.com/r0x16/Raidark/shared/auth/domain"
 	"github.com/r0x16/Raidark/shared/auth/driver/repositories"
 	"github.com/r0x16/Raidark/shared/auth/service"
-	"github.com/r0x16/Raidark/shared/datastore/driver"
+	driverdatastore "github.com/r0x16/Raidark/shared/datastore/driver"
 )
 
 // LogoutController handles user logout operations
 type LogoutController struct {
-	bundle *drivers.ApplicationBundle
+	bundle *driverapi.ApplicationBundle
 }
 
 // LogoutAction creates a LogoutController instance and delegates to the Logout method
-func LogoutAction(c echo.Context, bundle *drivers.ApplicationBundle) error {
+func LogoutAction(c echo.Context, bundle *driverapi.ApplicationBundle) error {
 	controller := &LogoutController{
 		bundle: bundle,
 	}
@@ -67,8 +67,8 @@ func (lc *LogoutController) Logout(c echo.Context) error {
 }
 
 // getDatabaseProvider retrieves and validates the database provider from the bundle
-func (lc *LogoutController) getDatabaseProvider() (*driver.GormPostgresDatabaseProvider, error) {
-	dbProvider, ok := lc.bundle.Database.(*driver.GormPostgresDatabaseProvider)
+func (lc *LogoutController) getDatabaseProvider() (*driverdatastore.GormPostgresDatabaseProvider, error) {
+	dbProvider, ok := lc.bundle.Database.(*driverdatastore.GormPostgresDatabaseProvider)
 	if !ok {
 		lc.bundle.Log.Error("Failed to get database connection", map[string]any{
 			"error": "invalid database provider type",
@@ -119,7 +119,7 @@ func (lc *LogoutController) handleNoSession(c echo.Context, err error) error {
 }
 
 // initializeAuthService creates and returns an instance of the logout service
-func (lc *LogoutController) initializeAuthService(dbProvider *driver.GormPostgresDatabaseProvider) *service.AuthLogoutService {
+func (lc *LogoutController) initializeAuthService(dbProvider *driverdatastore.GormPostgresDatabaseProvider) *service.AuthLogoutService {
 	sessionRepo := repositories.NewGormSessionRepository(dbProvider.GetDataStore().Exec)
 	return service.NewAuthLogoutService(sessionRepo, lc.bundle.Auth)
 }
