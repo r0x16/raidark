@@ -1,9 +1,5 @@
 package domain
 
-import (
-	"github.com/r0x16/Raidark/shared/domain/model/auth"
-)
-
 // AuthProvider defines the interface for authentication providers
 type AuthProvider interface {
 	// Initialize the auth provider with configuration
@@ -13,28 +9,28 @@ type AuthProvider interface {
 	GetAuthURL(state string) string
 
 	// Exchange authorization code for access token
-	GetToken(code, state string) (*auth.Token, error)
+	GetToken(code, state string) (*Token, error)
 
 	// Refresh OAuth token using refresh token
-	RefreshToken(refreshToken string) (*auth.Token, error)
+	RefreshToken(refreshToken string) (*Token, error)
 
 	// Parse and validate JWT token
-	ParseToken(token string) (*auth.Claims, error)
+	ParseToken(token string) (*Claims, error)
 
 	// Get user information by username
-	GetUser(username string) (*auth.User, error)
+	GetUser(username string) (*User, error)
 
 	// Get all users
-	GetUsers() ([]*auth.User, error)
+	GetUsers() ([]*User, error)
 
 	// Create a new user
-	AddUser(user *auth.User) (bool, error)
+	AddUser(user *User) (bool, error)
 
 	// Update existing user
-	UpdateUser(user *auth.User) (bool, error)
+	UpdateUser(user *User) (bool, error)
 
 	// Delete user
-	DeleteUser(user *auth.User) (bool, error)
+	DeleteUser(user *User) (bool, error)
 
 	// Verify if provider is healthy
 	HealthCheck() error

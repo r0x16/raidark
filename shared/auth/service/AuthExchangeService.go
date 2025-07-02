@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/r0x16/Raidark/api/auth/domain/model"
-	"github.com/r0x16/Raidark/api/auth/domain/repositories"
-	domauth "github.com/r0x16/Raidark/shared/domain/auth"
-	"github.com/r0x16/Raidark/shared/domain/model/auth"
+	"github.com/r0x16/Raidark/shared/auth/domain"
+	"github.com/r0x16/Raidark/shared/auth/domain/model"
+	"github.com/r0x16/Raidark/shared/auth/domain/repositories"
 )
 
 // AuthExchangeService handles code exchange for tokens
@@ -16,14 +15,14 @@ type AuthExchangeService struct {
 }
 
 // NewAuthExchangeService creates a new exchange service
-func NewAuthExchangeService(sessionRepo repositories.SessionRepository, authProvider domauth.AuthProvider) *AuthExchangeService {
+func NewAuthExchangeService(sessionRepo repositories.SessionRepository, authProvider domain.AuthProvider) *AuthExchangeService {
 	return &AuthExchangeService{
 		AuthService: NewAuthService(sessionRepo, authProvider),
 	}
 }
 
 // ExchangeCodeForTokens exchanges authorization code for tokens and creates session
-func (s *AuthExchangeService) ExchangeCodeForTokens(code, state, userAgent, ipAddress string) (*model.AuthSession, *auth.Token, *auth.Claims, error) {
+func (s *AuthExchangeService) ExchangeCodeForTokens(code, state, userAgent, ipAddress string) (*model.AuthSession, *domain.Token, *domain.Claims, error) {
 	// Exchange code for token using Casdoor
 	token, err := s.GetAuthProvider().GetToken(code, state)
 	if err != nil {

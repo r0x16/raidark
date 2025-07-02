@@ -3,10 +3,9 @@ package service
 import (
 	"fmt"
 
-	"github.com/r0x16/Raidark/api/auth/domain/model"
-	"github.com/r0x16/Raidark/api/auth/domain/repositories"
-	domauth "github.com/r0x16/Raidark/shared/domain/auth"
-	"github.com/r0x16/Raidark/shared/domain/model/auth"
+	"github.com/r0x16/Raidark/shared/auth/domain"
+	"github.com/r0x16/Raidark/shared/auth/domain/model"
+	"github.com/r0x16/Raidark/shared/auth/domain/repositories"
 )
 
 // AuthRefreshService handles token refresh functionality
@@ -15,14 +14,14 @@ type AuthRefreshService struct {
 }
 
 // NewAuthRefreshService creates a new refresh service
-func NewAuthRefreshService(sessionRepo repositories.SessionRepository, authProvider domauth.AuthProvider) *AuthRefreshService {
+func NewAuthRefreshService(sessionRepo repositories.SessionRepository, authProvider domain.AuthProvider) *AuthRefreshService {
 	return &AuthRefreshService{
 		AuthService: NewAuthService(sessionRepo, authProvider),
 	}
 }
 
 // RefreshTokens refreshes access token using refresh token from session
-func (s *AuthRefreshService) RefreshTokens(sessionID, userAgent, ipAddress string) (*model.AuthSession, *auth.Token, error) {
+func (s *AuthRefreshService) RefreshTokens(sessionID, userAgent, ipAddress string) (*model.AuthSession, *domain.Token, error) {
 	// Find session by ID using repository
 	session, err := s.GetSessionRepo().FindBySessionID(sessionID)
 	if err != nil {

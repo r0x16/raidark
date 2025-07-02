@@ -1,4 +1,4 @@
-package auth
+package domain
 
 // Claims represents JWT claims in the domain
 type Claims struct {

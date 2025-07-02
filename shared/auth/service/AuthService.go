@@ -5,19 +5,19 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/r0x16/Raidark/api/auth/domain/model"
-	"github.com/r0x16/Raidark/api/auth/domain/repositories"
-	domauth "github.com/r0x16/Raidark/shared/domain/auth"
+	"github.com/r0x16/Raidark/shared/auth/domain"
+	"github.com/r0x16/Raidark/shared/auth/domain/model"
+	"github.com/r0x16/Raidark/shared/auth/domain/repositories"
 )
 
 // AuthService base service with common authentication functionalities
 type AuthService struct {
 	sessionRepo  repositories.SessionRepository
-	authProvider domauth.AuthProvider
+	authProvider domain.AuthProvider
 }
 
 // NewAuthService creates a new base authentication service
-func NewAuthService(sessionRepo repositories.SessionRepository, authProvider domauth.AuthProvider) *AuthService {
+func NewAuthService(sessionRepo repositories.SessionRepository, authProvider domain.AuthProvider) *AuthService {
 	return &AuthService{
 		sessionRepo:  sessionRepo,
 		authProvider: authProvider,
@@ -73,6 +73,6 @@ func (s *AuthService) GetSessionRepo() repositories.SessionRepository {
 }
 
 // GetAuthProvider returns the auth provider for access by specialized services
-func (s *AuthService) GetAuthProvider() domauth.AuthProvider {
+func (s *AuthService) GetAuthProvider() domain.AuthProvider {
 	return s.authProvider
 }

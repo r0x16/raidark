@@ -1,12 +1,11 @@
-package auth
+package driver
 
 import (
 	"fmt"
 	"net/url"
 
 	"github.com/casdoor/casdoor-go-sdk/casdoorsdk"
-	domauth "github.com/r0x16/Raidark/shared/domain/auth"
-	"github.com/r0x16/Raidark/shared/domain/model/auth"
+	"github.com/r0x16/Raidark/shared/auth/domain"
 	"golang.org/x/oauth2"
 )
 
@@ -17,7 +16,7 @@ type CasdoorAuthProvider struct {
 }
 
 // Verify interface implementation
-var _ domauth.AuthProvider = &CasdoorAuthProvider{}
+var _ domain.AuthProvider = &CasdoorAuthProvider{}
 
 // NewCasdoorAuthProvider creates a new CasdoorAuthProvider instance
 func NewCasdoorAuthProvider(config *CasdoorConfig) *CasdoorAuthProvider {
@@ -70,7 +69,7 @@ func (c *CasdoorAuthProvider) GetAuthURL(state string) string {
 }
 
 // GetToken exchanges authorization code for access token
-func (c *CasdoorAuthProvider) GetToken(code, state string) (*auth.Token, error) {
+func (c *CasdoorAuthProvider) GetToken(code, state string) (*domain.Token, error) {
 	if c.client == nil {
 		return nil, newCasdoorError("client not initialized")
 	}
@@ -84,7 +83,7 @@ func (c *CasdoorAuthProvider) GetToken(code, state string) (*auth.Token, error) 
 }
 
 // RefreshToken refreshes OAuth token using refresh token
-func (c *CasdoorAuthProvider) RefreshToken(refreshToken string) (*auth.Token, error) {
+func (c *CasdoorAuthProvider) RefreshToken(refreshToken string) (*domain.Token, error) {
 	if c.client == nil {
 		return nil, newCasdoorError("client not initialized")
 	}
@@ -98,7 +97,7 @@ func (c *CasdoorAuthProvider) RefreshToken(refreshToken string) (*auth.Token, er
 }
 
 // ParseToken parses and validates JWT token
-func (c *CasdoorAuthProvider) ParseToken(token string) (*auth.Claims, error) {
+func (c *CasdoorAuthProvider) ParseToken(token string) (*domain.Claims, error) {
 	if c.client == nil {
 		return nil, newCasdoorError("client not initialized")
 	}
@@ -112,7 +111,7 @@ func (c *CasdoorAuthProvider) ParseToken(token string) (*auth.Claims, error) {
 }
 
 // GetUser gets user information by username
-func (c *CasdoorAuthProvider) GetUser(username string) (*auth.User, error) {
+func (c *CasdoorAuthProvider) GetUser(username string) (*domain.User, error) {
 	if c.client == nil {
 		return nil, newCasdoorError("client not initialized")
 	}
@@ -123,11 +122,11 @@ func (c *CasdoorAuthProvider) GetUser(username string) (*auth.User, error) {
 	}
 
 	// Pure composition - direct embedding
-	return &auth.User{User: *casdoorUser}, nil
+	return &domain.User{User: *casdoorUser}, nil
 }
 
 // GetUsers gets all users
-func (c *CasdoorAuthProvider) GetUsers() ([]*auth.User, error) {
+func (c *CasdoorAuthProvider) GetUsers() ([]*domain.User, error) {
 	if c.client == nil {
 		return nil, newCasdoorError("client not initialized")
 	}
@@ -138,16 +137,16 @@ func (c *CasdoorAuthProvider) GetUsers() ([]*auth.User, error) {
 	}
 
 	// Pure composition conversion
-	domainUsers := make([]*auth.User, len(casdoorUsers))
+	domainUsers := make([]*domain.User, len(casdoorUsers))
 	for i, casdoorUser := range casdoorUsers {
-		domainUsers[i] = &auth.User{User: *casdoorUser}
+		domainUsers[i] = &domain.User{User: *casdoorUser}
 	}
 
 	return domainUsers, nil
 }
 
 // AddUser creates a new user
-func (c *CasdoorAuthProvider) AddUser(user *auth.User) (bool, error) {
+func (c *CasdoorAuthProvider) AddUser(user *domain.User) (bool, error) {
 	if c.client == nil {
 		return false, newCasdoorError("client not initialized")
 	}
@@ -162,7 +161,7 @@ func (c *CasdoorAuthProvider) AddUser(user *auth.User) (bool, error) {
 }
 
 // UpdateUser updates existing user
-func (c *CasdoorAuthProvider) UpdateUser(user *auth.User) (bool, error) {
+func (c *CasdoorAuthProvider) UpdateUser(user *domain.User) (bool, error) {
 	if c.client == nil {
 		return false, newCasdoorError("client not initialized")
 	}
@@ -177,7 +176,7 @@ func (c *CasdoorAuthProvider) UpdateUser(user *auth.User) (bool, error) {
 }
 
 // DeleteUser deletes user
-func (c *CasdoorAuthProvider) DeleteUser(user *auth.User) (bool, error) {
+func (c *CasdoorAuthProvider) DeleteUser(user *domain.User) (bool, error) {
 	if c.client == nil {
 		return false, newCasdoorError("client not initialized")
 	}
@@ -208,8 +207,8 @@ func (c *CasdoorAuthProvider) HealthCheck() error {
 
 // Simplified conversion functions
 
-func (c *CasdoorAuthProvider) convertOAuth2TokenToDomainToken(token *oauth2.Token) *auth.Token {
-	return &auth.Token{
+func (c *CasdoorAuthProvider) convertOAuth2TokenToDomainToken(token *oauth2.Token) *domain.Token {
+	return &domain.Token{
 		AccessToken:  token.AccessToken,
 		TokenType:    token.TokenType,
 		RefreshToken: token.RefreshToken,
@@ -217,8 +216,8 @@ func (c *CasdoorAuthProvider) convertOAuth2TokenToDomainToken(token *oauth2.Toke
 	}
 }
 
-func (c *CasdoorAuthProvider) convertCasdoorClaimsToDomainClaims(claims *casdoorsdk.Claims) *auth.Claims {
-	domainClaims := &auth.Claims{
+func (c *CasdoorAuthProvider) convertCasdoorClaimsToDomainClaims(claims *casdoorsdk.Claims) *domain.Claims {
+	domainClaims := &domain.Claims{
 		Username:     claims.User.Name,
 		Name:         claims.User.DisplayName,
 		Email:        claims.User.Email,

@@ -9,9 +9,9 @@ import (
 	"github.com/r0x16/Raidark/api/drivers"
 	"github.com/r0x16/Raidark/api/drivers/modules"
 	"github.com/r0x16/Raidark/api/services"
-	domauth "github.com/r0x16/Raidark/shared/domain/auth"
+	"github.com/r0x16/Raidark/shared/auth/domain"
+	"github.com/r0x16/Raidark/shared/auth/driver"
 	"github.com/r0x16/Raidark/shared/domain/logger"
-	"github.com/r0x16/Raidark/shared/driver/auth"
 	"github.com/r0x16/Raidark/shared/driver/db"
 	"github.com/r0x16/Raidark/shared/driver/env"
 	stdlog "github.com/r0x16/Raidark/shared/driver/logger"
@@ -111,8 +111,8 @@ func (d *Api) setupLogger() logger.LogProvider {
  * Setup the auth provider
  * This method creates a new casdoor auth provider and connects to the auth provider
  */
-func (d *Api) setupAuth() domauth.AuthProvider {
-	authProvider := auth.NewCasdoorAuthProviderFromEnv()
+func (d *Api) setupAuth() domain.AuthProvider {
+	authProvider := driver.NewCasdoorAuthProviderFromEnv()
 	err := authProvider.Initialize()
 	if err != nil {
 		fmt.Println(err)

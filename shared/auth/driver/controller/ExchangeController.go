@@ -5,12 +5,11 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/r0x16/Raidark/api/auth/domain"
-	"github.com/r0x16/Raidark/api/auth/domain/model"
-	"github.com/r0x16/Raidark/api/auth/drivers/repositories"
-	"github.com/r0x16/Raidark/api/auth/service"
 	"github.com/r0x16/Raidark/api/drivers"
-	"github.com/r0x16/Raidark/shared/domain/model/auth"
+	"github.com/r0x16/Raidark/shared/auth/domain"
+	"github.com/r0x16/Raidark/shared/auth/domain/model"
+	"github.com/r0x16/Raidark/shared/auth/driver/repositories"
+	"github.com/r0x16/Raidark/shared/auth/service"
 	"github.com/r0x16/Raidark/shared/driver/db"
 )
 
@@ -118,7 +117,7 @@ func (ec *ExchangeController) initializeAuthService(dbProvider *db.GormPostgresD
 }
 
 // exchangeCodeForTokens performs the OAuth2 code exchange and returns session, token, and claims
-func (ec *ExchangeController) exchangeCodeForTokens(authService *service.AuthExchangeService, req *domain.ExchangeRequest, userAgent, ipAddress string) (*model.AuthSession, *auth.Token, *auth.Claims, error) {
+func (ec *ExchangeController) exchangeCodeForTokens(authService *service.AuthExchangeService, req *domain.ExchangeRequest, userAgent, ipAddress string) (*model.AuthSession, *domain.Token, *domain.Claims, error) {
 	session, token, claims, err := authService.ExchangeCodeForTokens(req.Code, req.State, userAgent, ipAddress)
 	if err != nil {
 		ec.bundle.Log.Error("Failed to exchange code for tokens", map[string]any{
@@ -146,7 +145,7 @@ func (ec *ExchangeController) setSessionCookie(c echo.Context, session *model.Au
 }
 
 // buildResponse constructs the exchange response with token and user information
-func (ec *ExchangeController) buildResponse(token *auth.Token, claims *auth.Claims) domain.ExchangeResponse {
+func (ec *ExchangeController) buildResponse(token *domain.Token, claims *domain.Claims) domain.ExchangeResponse {
 	// Calculate token expiry
 	expiresIn := int64(0)
 	if !token.Expiry.IsZero() {
@@ -169,7 +168,7 @@ func (ec *ExchangeController) buildResponse(token *auth.Token, claims *auth.Clai
 }
 
 // logSuccessfulExchange logs the successful token exchange operation
-func (ec *ExchangeController) logSuccessfulExchange(claims *auth.Claims, session *model.AuthSession) {
+func (ec *ExchangeController) logSuccessfulExchange(claims *domain.Claims, session *model.AuthSession) {
 	ec.bundle.Log.Info("Token exchange successful", map[string]any{
 		"user_id":    claims.Subject,
 		"username":   claims.Username,

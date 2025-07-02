@@ -4,10 +4,10 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/r0x16/Raidark/api/auth/domain"
-	"github.com/r0x16/Raidark/api/auth/drivers/repositories"
-	"github.com/r0x16/Raidark/api/auth/service"
 	"github.com/r0x16/Raidark/api/drivers"
+	"github.com/r0x16/Raidark/shared/auth/domain"
+	"github.com/r0x16/Raidark/shared/auth/driver/repositories"
+	"github.com/r0x16/Raidark/shared/auth/service"
 	"github.com/r0x16/Raidark/shared/driver/db"
 )
 

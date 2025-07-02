@@ -3,8 +3,8 @@ package repositories
 import (
 	"time"
 
-	"github.com/r0x16/Raidark/api/auth/domain/model"
-	"github.com/r0x16/Raidark/api/auth/domain/repositories"
+	"github.com/r0x16/Raidark/shared/auth/domain/model"
+	"github.com/r0x16/Raidark/shared/auth/domain/repositories"
 	"gorm.io/gorm"
 )
 

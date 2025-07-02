@@ -1,8 +1,6 @@
 package repositories
 
-import (
-	"github.com/r0x16/Raidark/api/auth/domain/model"
-)
+import "github.com/r0x16/Raidark/shared/auth/domain/model"
 
 // SessionRepository defines the interface for session data access operations
 type SessionRepository interface {

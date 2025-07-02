@@ -1,8 +1,8 @@
 package modules
 
 import (
-	"github.com/r0x16/Raidark/api/auth/controller"
 	"github.com/r0x16/Raidark/api/domain"
+	"github.com/r0x16/Raidark/shared/auth/driver/controller"
 )
 
 type EchoAuthModule struct {

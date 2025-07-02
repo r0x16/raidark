@@ -20,8 +20,8 @@ type AuthSession struct {
 	IPAddress     string    `gorm:"type:varchar(45)" json:"ip_address"`
 }
 
-// TableName returns the table name for GORM
-func (AuthSession) TableName() string {
+// StoreName returns the datastore name for GORM
+func (AuthSession) StoreName() string {
 	return "auth_sessions"
 }
 

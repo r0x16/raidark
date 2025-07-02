@@ -2,8 +2,8 @@ package drivers
 
 import (
 	"github.com/labstack/echo/v4"
-	"github.com/r0x16/Raidark/shared/domain"
-	domauth "github.com/r0x16/Raidark/shared/domain/auth"
+	domauth "github.com/r0x16/Raidark/shared/auth/domain"
+	domdb "github.com/r0x16/Raidark/shared/domain"
 	"github.com/r0x16/Raidark/shared/domain/logger"
 	"github.com/r0x16/Raidark/shared/driver/env"
 )
@@ -14,7 +14,7 @@ import (
  */
 type ApplicationBundle struct {
 	Log      logger.LogProvider
-	Database domain.DatabaseProvider
+	Database domdb.DatabaseProvider
 	Auth     domauth.AuthProvider
 	Env      *env.EnvProvider
 }

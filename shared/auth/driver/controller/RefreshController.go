@@ -5,12 +5,11 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/r0x16/Raidark/api/auth/domain"
-	"github.com/r0x16/Raidark/api/auth/domain/model"
-	"github.com/r0x16/Raidark/api/auth/drivers/repositories"
-	"github.com/r0x16/Raidark/api/auth/service"
 	"github.com/r0x16/Raidark/api/drivers"
-	"github.com/r0x16/Raidark/shared/domain/model/auth"
+	"github.com/r0x16/Raidark/shared/auth/domain"
+	"github.com/r0x16/Raidark/shared/auth/domain/model"
+	"github.com/r0x16/Raidark/shared/auth/driver/repositories"
+	"github.com/r0x16/Raidark/shared/auth/service"
 	"github.com/r0x16/Raidark/shared/driver/db"
 )
 
@@ -115,7 +114,7 @@ func (rc *RefreshController) initializeAuthService(dbProvider *db.GormPostgresDa
 }
 
 // refreshTokens attempts to refresh the access token using the session's refresh token
-func (rc *RefreshController) refreshTokens(authService *service.AuthRefreshService, sessionID, userAgent, ipAddress string) (*model.AuthSession, *auth.Token, error) {
+func (rc *RefreshController) refreshTokens(authService *service.AuthRefreshService, sessionID, userAgent, ipAddress string) (*model.AuthSession, *domain.Token, error) {
 	session, token, err := authService.RefreshTokens(sessionID, userAgent, ipAddress)
 	if err != nil {
 		rc.bundle.Log.Warning("Failed to refresh tokens", map[string]any{
@@ -142,7 +141,7 @@ func (rc *RefreshController) updateSessionCookie(c echo.Context, session *model.
 }
 
 // buildResponse constructs the refresh response with the new access token
-func (rc *RefreshController) buildResponse(token *auth.Token) domain.RefreshResponse {
+func (rc *RefreshController) buildResponse(token *domain.Token) domain.RefreshResponse {
 	// Calculate token expiry
 	expiresIn := int64(0)
 	if !token.Expiry.IsZero() {

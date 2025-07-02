@@ -3,8 +3,8 @@ package service
 import (
 	"fmt"
 
-	"github.com/r0x16/Raidark/api/auth/domain/repositories"
-	domauth "github.com/r0x16/Raidark/shared/domain/auth"
+	"github.com/r0x16/Raidark/shared/auth/domain"
+	"github.com/r0x16/Raidark/shared/auth/domain/repositories"
 )
 
 // AuthLogoutService handles logout functionality
@@ -13,7 +13,7 @@ type AuthLogoutService struct {
 }
 
 // NewAuthLogoutService creates a new logout service
-func NewAuthLogoutService(sessionRepo repositories.SessionRepository, authProvider domauth.AuthProvider) *AuthLogoutService {
+func NewAuthLogoutService(sessionRepo repositories.SessionRepository, authProvider domain.AuthProvider) *AuthLogoutService {
 	return &AuthLogoutService{
 		AuthService: NewAuthService(sessionRepo, authProvider),
 	}
