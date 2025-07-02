@@ -113,7 +113,7 @@ func (ec *ExchangeController) extractClientInfo(c echo.Context) (string, string)
 
 // initializeAuthService creates and returns an instance of the authentication service
 func (ec *ExchangeController) initializeAuthService(dbProvider *db.GormPostgresDatabaseProvider) *service.AuthExchangeService {
-	sessionRepo := repositories.NewGormSessionRepository(dbProvider.Connection)
+	sessionRepo := repositories.NewGormSessionRepository(dbProvider.GetDataStore().Exec)
 	return service.NewAuthExchangeService(sessionRepo, ec.bundle.Auth)
 }
 

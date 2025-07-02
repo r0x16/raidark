@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/r0x16/Raidark/shared/domain"
+	"github.com/r0x16/Raidark/shared/domain/model/db"
 	"github.com/r0x16/Raidark/shared/driver/db/connection"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -13,7 +14,7 @@ import (
  * Represents a mysql database provider connector using gorm
  */
 type GormMysqlDatabaseProvider struct {
-	Connection *gorm.DB
+	Datastore *db.DataStore
 }
 
 var _ domain.DatabaseProvider = &GormMysqlDatabaseProvider{}
@@ -32,7 +33,12 @@ func (g *GormMysqlDatabaseProvider) Connect() error {
 	}
 
 	var err error
-	g.Connection, err = gorm.Open(mysql.Open(dsn.GetDsn()), &gorm.Config{})
+	connection, err := gorm.Open(mysql.Open(dsn.GetDsn()), &gorm.Config{})
+	if err != nil {
+		return err
+	}
+
+	g.Datastore = db.NewDataStore(connection)
 	return err
 }
 
@@ -41,12 +47,16 @@ func (g *GormMysqlDatabaseProvider) Connect() error {
  * This method ensures that the underlying SQL database connection is properly closed.
  */
 func (g *GormMysqlDatabaseProvider) Close() error {
-	if g.Connection != nil {
-		sqlDB, err := g.Connection.DB()
+	if g.Datastore != nil {
+		sqlDB, err := g.Datastore.Exec.DB()
 		if err != nil {
 			return err
 		}
 		return sqlDB.Close()
 	}
 	return nil
+}
+
+func (g *GormMysqlDatabaseProvider) GetDataStore() *db.DataStore {
+	return g.Datastore
 }

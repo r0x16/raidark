@@ -2,7 +2,6 @@ package controller
 
 import (
 	"github.com/r0x16/Raidark/api/drivers"
-	"github.com/r0x16/Raidark/shared/driver/db"
 )
 
 type SeederController struct {
@@ -11,8 +10,8 @@ type SeederController struct {
 
 func (c *SeederController) SeedAction() error {
 
-	db := c.Database.(*db.GormPostgresDatabaseProvider)
-	tx := db.Connection.Begin()
+	db := c.Database.GetDataStore().Exec
+	tx := db.Begin()
 
 	// TODO: Example of seeding
 	/* err = c.seedTimeUnit(tx)

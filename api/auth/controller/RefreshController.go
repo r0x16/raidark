@@ -110,7 +110,7 @@ func (rc *RefreshController) extractClientInfo(c echo.Context) (string, string) 
 
 // initializeAuthService creates and returns an instance of the refresh service
 func (rc *RefreshController) initializeAuthService(dbProvider *db.GormPostgresDatabaseProvider) *service.AuthRefreshService {
-	sessionRepo := repositories.NewGormSessionRepository(dbProvider.Connection)
+	sessionRepo := repositories.NewGormSessionRepository(dbProvider.GetDataStore().Exec)
 	return service.NewAuthRefreshService(sessionRepo, rc.bundle.Auth)
 }
 

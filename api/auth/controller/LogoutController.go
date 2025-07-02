@@ -120,7 +120,7 @@ func (lc *LogoutController) handleNoSession(c echo.Context, err error) error {
 
 // initializeAuthService creates and returns an instance of the logout service
 func (lc *LogoutController) initializeAuthService(dbProvider *db.GormPostgresDatabaseProvider) *service.AuthLogoutService {
-	sessionRepo := repositories.NewGormSessionRepository(dbProvider.Connection)
+	sessionRepo := repositories.NewGormSessionRepository(dbProvider.GetDataStore().Exec)
 	return service.NewAuthLogoutService(sessionRepo, lc.bundle.Auth)
 }
 

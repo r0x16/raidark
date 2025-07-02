@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/r0x16/Raidark/shared/domain"
+	"github.com/r0x16/Raidark/shared/domain/model/db"
 	"github.com/r0x16/Raidark/shared/driver/db/connection"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -13,7 +14,7 @@ import (
  * Represents a postgres database provider connector using gorm
  */
 type GormPostgresDatabaseProvider struct {
-	Connection *gorm.DB
+	Datastore *db.DataStore
 }
 
 var _ domain.DatabaseProvider = &GormPostgresDatabaseProvider{}
@@ -32,8 +33,13 @@ func (g *GormPostgresDatabaseProvider) Connect() error {
 	}
 
 	var err error
-	g.Connection, err = gorm.Open(postgres.Open(dsn.GetDsn()), &gorm.Config{})
-	return err
+	connection, err := gorm.Open(postgres.Open(dsn.GetDsn()), &gorm.Config{})
+	if err != nil {
+		return err
+	}
+
+	g.Datastore = db.NewDataStore(connection)
+	return nil
 }
 
 /*
@@ -41,12 +47,16 @@ func (g *GormPostgresDatabaseProvider) Connect() error {
  * This method ensures that the underlying SQL database connection is properly closed.
  */
 func (g *GormPostgresDatabaseProvider) Close() error {
-	if g.Connection != nil {
-		sqlDB, err := g.Connection.DB()
+	if g.Datastore != nil {
+		sqlDB, err := g.Datastore.Exec.DB()
 		if err != nil {
 			return err
 		}
 		return sqlDB.Close()
 	}
 	return nil
+}
+
+func (g *GormPostgresDatabaseProvider) GetDataStore() *db.DataStore {
+	return g.Datastore
 }

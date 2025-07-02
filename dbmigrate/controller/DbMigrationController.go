@@ -20,5 +20,5 @@ func (d *DbMigrationController) MigrateAction() error {
 
 func (d *DbMigrationController) migrateModels() error {
 	db := d.Database.(*db.GormPostgresDatabaseProvider)
-	return db.Connection.AutoMigrate()
+	return db.GetDataStore().Exec.AutoMigrate()
 }
