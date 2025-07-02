@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/r0x16/Raidark/dbmigrate/controller"
 	driverapi "github.com/r0x16/Raidark/shared/api/driver"
 	domdatastore "github.com/r0x16/Raidark/shared/datastore/domain"
 	driverdatastore "github.com/r0x16/Raidark/shared/datastore/driver"
 	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
 	drivelogger "github.com/r0x16/Raidark/shared/logger/driver"
+	"github.com/r0x16/Raidark/shared/migration/driver/controller"
 )
 
 type Seeder struct {

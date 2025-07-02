@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/r0x16/Raidark/cmd"
+	"github.com/r0x16/Raidark/shared/cmd"
 )
 
 // loadEnvIfExists loads the .env file only if it exists
