@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/r0x16/Raidark/shared/domain/events"
 	"github.com/r0x16/Raidark/shared/domain/output"
+	"github.com/r0x16/Raidark/shared/events/domain"
 )
 
 type ServerEventEcho struct {
@@ -14,7 +14,7 @@ type ServerEventEcho struct {
 	m       sync.Mutex
 }
 
-var _ events.ServerEventProvider = &ServerEventEcho{}
+var _ domain.ServerEventProvider = &ServerEventEcho{}
 
 // NewServerEventEcho creates a new ServerEventEcho instance.
 func NewServerEventEcho(id string) *ServerEventEcho {
@@ -25,7 +25,7 @@ func NewServerEventEcho(id string) *ServerEventEcho {
 }
 
 // Subscribe implements events.ServerEventProvider.
-func (se *ServerEventEcho) Subscribe(client events.EventClient) *output.Error {
+func (se *ServerEventEcho) Subscribe(client domain.EventClient) *output.Error {
 	se.m.Lock()
 	defer se.m.Unlock()
 
@@ -43,7 +43,7 @@ func (se *ServerEventEcho) Subscribe(client events.EventClient) *output.Error {
 }
 
 // Unsubscribe implements events.ServerEventProvider.
-func (se *ServerEventEcho) Unsubscribe(client events.EventClient) *output.Error {
+func (se *ServerEventEcho) Unsubscribe(client domain.EventClient) *output.Error {
 	se.m.Lock()
 	defer se.m.Unlock()
 
@@ -61,7 +61,7 @@ func (se *ServerEventEcho) Unsubscribe(client events.EventClient) *output.Error 
 }
 
 // Broadcast implements events.ServerEventProvider.
-func (se *ServerEventEcho) Broadcast(message *events.EventMessage) *output.Error {
+func (se *ServerEventEcho) Broadcast(message *domain.EventMessage) *output.Error {
 	se.m.Lock()
 	defer se.m.Unlock()
 

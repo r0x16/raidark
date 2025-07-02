@@ -1,4 +1,4 @@
-package events
+package domain
 
 import (
 	"github.com/r0x16/Raidark/shared/domain/output"

@@ -1,4 +1,4 @@
-package events
+package domain
 
 type EventMessage struct {
 	Event string

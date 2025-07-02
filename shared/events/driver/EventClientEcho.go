@@ -6,23 +6,23 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/r0x16/Raidark/shared/domain/events"
 	"github.com/r0x16/Raidark/shared/domain/output"
+	"github.com/r0x16/Raidark/shared/events/domain"
 )
 
 type EventClientEcho struct {
 	Id           string
-	eventChannel chan *events.EventMessage
+	eventChannel chan *domain.EventMessage
 	context      echo.Context
 }
 
-var _ events.EventClient = &EventClientEcho{}
+var _ domain.EventClient = &EventClientEcho{}
 
 // NewEventClientEcho creates a new EventClientEcho instance.
 func NewEventClientEcho(id string, c echo.Context) EventClientEcho {
 	return EventClientEcho{
 		Id:           id,
-		eventChannel: make(chan *events.EventMessage, 1),
+		eventChannel: make(chan *domain.EventMessage, 1),
 		context:      c,
 	}
 }
@@ -42,7 +42,7 @@ func (c EventClientEcho) GetId() string {
 }
 
 // SendMessage implements domain.EventClient.
-func (c EventClientEcho) SendMessage(message *events.EventMessage) *output.Error {
+func (c EventClientEcho) SendMessage(message *domain.EventMessage) *output.Error {
 	c.eventChannel <- message
 	return nil
 }
@@ -65,14 +65,14 @@ func (c EventClientEcho) Online() *output.Error {
 }
 
 func (c EventClientEcho) Close() {
-	c.handleEvent(&events.EventMessage{
+	c.handleEvent(&domain.EventMessage{
 		Event: "ready",
 		Data:  "close",
 	})
 	close(c.eventChannel)
 }
 
-func (c EventClientEcho) handleEvent(message *events.EventMessage) *output.Error {
+func (c EventClientEcho) handleEvent(message *domain.EventMessage) *output.Error {
 	data, err := json.Marshal(message.Data)
 	if err != nil {
 		return &output.Error{
@@ -102,7 +102,7 @@ func (c EventClientEcho) transportEvent(event string, data string) *output.Error
 }
 
 func (c EventClientEcho) ping() *output.Error {
-	return c.handleEvent(&events.EventMessage{
+	return c.handleEvent(&domain.EventMessage{
 		Event: "ping",
 		Data:  "pong",
 	})
