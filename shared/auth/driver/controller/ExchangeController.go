@@ -10,7 +10,7 @@ import (
 	"github.com/r0x16/Raidark/shared/auth/domain/model"
 	"github.com/r0x16/Raidark/shared/auth/driver/repositories"
 	"github.com/r0x16/Raidark/shared/auth/service"
-	"github.com/r0x16/Raidark/shared/driver/db"
+	"github.com/r0x16/Raidark/shared/datastore/driver"
 )
 
 // ExchangeController handles OAuth2 authorization code exchange operations
@@ -70,8 +70,8 @@ func (ec *ExchangeController) Exchange(c echo.Context) error {
 }
 
 // getDatabaseProvider retrieves and validates the database provider from the bundle
-func (ec *ExchangeController) getDatabaseProvider() (*db.GormPostgresDatabaseProvider, error) {
-	dbProvider, ok := ec.bundle.Database.(*db.GormPostgresDatabaseProvider)
+func (ec *ExchangeController) getDatabaseProvider() (*driver.GormPostgresDatabaseProvider, error) {
+	dbProvider, ok := ec.bundle.Database.(*driver.GormPostgresDatabaseProvider)
 	if !ok {
 		ec.bundle.Log.Error("Failed to get database connection", map[string]any{
 			"error": "invalid database provider type",
@@ -111,7 +111,7 @@ func (ec *ExchangeController) extractClientInfo(c echo.Context) (string, string)
 }
 
 // initializeAuthService creates and returns an instance of the authentication service
-func (ec *ExchangeController) initializeAuthService(dbProvider *db.GormPostgresDatabaseProvider) *service.AuthExchangeService {
+func (ec *ExchangeController) initializeAuthService(dbProvider *driver.GormPostgresDatabaseProvider) *service.AuthExchangeService {
 	sessionRepo := repositories.NewGormSessionRepository(dbProvider.GetDataStore().Exec)
 	return service.NewAuthExchangeService(sessionRepo, ec.bundle.Auth)
 }

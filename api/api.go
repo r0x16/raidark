@@ -11,7 +11,8 @@ import (
 	"github.com/r0x16/Raidark/api/services"
 	"github.com/r0x16/Raidark/shared/auth/domain"
 	"github.com/r0x16/Raidark/shared/auth/driver"
-	"github.com/r0x16/Raidark/shared/driver/db"
+	domdatastore "github.com/r0x16/Raidark/shared/datastore/domain"
+	driverdatastore "github.com/r0x16/Raidark/shared/datastore/driver"
 	domenv "github.com/r0x16/Raidark/shared/env/domain"
 	driverenv "github.com/r0x16/Raidark/shared/env/driver"
 	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
@@ -85,8 +86,8 @@ func (a *Api) registerModules(server *drivers.EchoApiProvider) {
  * Setup the database connection
  * This method creates a new postgres database provider and connects to the database
  */
-func (d *Api) setupDatabase() *db.GormPostgresDatabaseProvider {
-	dbProvider := &db.GormPostgresDatabaseProvider{}
+func (d *Api) setupDatabase() domdatastore.DatabaseProvider {
+	dbProvider := &driverdatastore.GormPostgresDatabaseProvider{}
 	err := dbProvider.Connect()
 
 	if err != nil {

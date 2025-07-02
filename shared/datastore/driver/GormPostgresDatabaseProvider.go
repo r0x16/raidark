@@ -1,11 +1,10 @@
-package db
+package driver
 
 import (
 	"os"
 
-	"github.com/r0x16/Raidark/shared/domain"
-	"github.com/r0x16/Raidark/shared/domain/model/db"
-	"github.com/r0x16/Raidark/shared/driver/db/connection"
+	"github.com/r0x16/Raidark/shared/datastore/domain"
+	"github.com/r0x16/Raidark/shared/datastore/driver/connection"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -14,7 +13,7 @@ import (
  * Represents a postgres database provider connector using gorm
  */
 type GormPostgresDatabaseProvider struct {
-	Datastore *db.DataStore
+	Datastore *domain.DataStore
 }
 
 var _ domain.DatabaseProvider = &GormPostgresDatabaseProvider{}
@@ -38,7 +37,7 @@ func (g *GormPostgresDatabaseProvider) Connect() error {
 		return err
 	}
 
-	g.Datastore = db.NewDataStore(connection)
+	g.Datastore = domain.NewDataStore(connection)
 	return nil
 }
 
@@ -57,6 +56,6 @@ func (g *GormPostgresDatabaseProvider) Close() error {
 	return nil
 }
 
-func (g *GormPostgresDatabaseProvider) GetDataStore() *db.DataStore {
+func (g *GormPostgresDatabaseProvider) GetDataStore() *domain.DataStore {
 	return g.Datastore
 }

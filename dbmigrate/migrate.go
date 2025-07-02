@@ -6,7 +6,8 @@ import (
 
 	"github.com/r0x16/Raidark/api/drivers"
 	"github.com/r0x16/Raidark/dbmigrate/controller"
-	"github.com/r0x16/Raidark/shared/driver/db"
+	domdatastore "github.com/r0x16/Raidark/shared/datastore/domain"
+	driverdatastore "github.com/r0x16/Raidark/shared/datastore/driver"
 	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
 	drivelogger "github.com/r0x16/Raidark/shared/logger/driver"
 )
@@ -39,8 +40,8 @@ func (d *Dbmigrate) Run() {
  * Setup the database connection
  * This method creates a new postgres database provider and connects to the database
  */
-func (d *Dbmigrate) setupDatabase() *db.GormPostgresDatabaseProvider {
-	dbProvider := &db.GormPostgresDatabaseProvider{}
+func (d *Dbmigrate) setupDatabase() domdatastore.DatabaseProvider {
+	dbProvider := &driverdatastore.GormPostgresDatabaseProvider{}
 	err := dbProvider.Connect()
 
 	if err != nil {

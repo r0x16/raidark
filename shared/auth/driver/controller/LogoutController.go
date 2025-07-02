@@ -8,7 +8,7 @@ import (
 	"github.com/r0x16/Raidark/shared/auth/domain"
 	"github.com/r0x16/Raidark/shared/auth/driver/repositories"
 	"github.com/r0x16/Raidark/shared/auth/service"
-	"github.com/r0x16/Raidark/shared/driver/db"
+	"github.com/r0x16/Raidark/shared/datastore/driver"
 )
 
 // LogoutController handles user logout operations
@@ -67,8 +67,8 @@ func (lc *LogoutController) Logout(c echo.Context) error {
 }
 
 // getDatabaseProvider retrieves and validates the database provider from the bundle
-func (lc *LogoutController) getDatabaseProvider() (*db.GormPostgresDatabaseProvider, error) {
-	dbProvider, ok := lc.bundle.Database.(*db.GormPostgresDatabaseProvider)
+func (lc *LogoutController) getDatabaseProvider() (*driver.GormPostgresDatabaseProvider, error) {
+	dbProvider, ok := lc.bundle.Database.(*driver.GormPostgresDatabaseProvider)
 	if !ok {
 		lc.bundle.Log.Error("Failed to get database connection", map[string]any{
 			"error": "invalid database provider type",
@@ -119,7 +119,7 @@ func (lc *LogoutController) handleNoSession(c echo.Context, err error) error {
 }
 
 // initializeAuthService creates and returns an instance of the logout service
-func (lc *LogoutController) initializeAuthService(dbProvider *db.GormPostgresDatabaseProvider) *service.AuthLogoutService {
+func (lc *LogoutController) initializeAuthService(dbProvider *driver.GormPostgresDatabaseProvider) *service.AuthLogoutService {
 	sessionRepo := repositories.NewGormSessionRepository(dbProvider.GetDataStore().Exec)
 	return service.NewAuthLogoutService(sessionRepo, lc.bundle.Auth)
 }

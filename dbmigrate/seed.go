@@ -6,7 +6,8 @@ import (
 
 	"github.com/r0x16/Raidark/api/drivers"
 	"github.com/r0x16/Raidark/dbmigrate/controller"
-	"github.com/r0x16/Raidark/shared/driver/db"
+	domdatastore "github.com/r0x16/Raidark/shared/datastore/domain"
+	driverdatastore "github.com/r0x16/Raidark/shared/datastore/driver"
 	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
 	drivelogger "github.com/r0x16/Raidark/shared/logger/driver"
 )
@@ -36,8 +37,8 @@ func (d *Seeder) Run() {
 
 }
 
-func (d *Seeder) setupDatabase() *db.GormMysqlDatabaseProvider {
-	dbProvider := &db.GormMysqlDatabaseProvider{}
+func (d *Seeder) setupDatabase() domdatastore.DatabaseProvider {
+	dbProvider := &driverdatastore.GormMysqlDatabaseProvider{}
 	err := dbProvider.Connect()
 
 	if err != nil {

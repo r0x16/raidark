@@ -3,7 +3,7 @@ package drivers
 import (
 	"github.com/labstack/echo/v4"
 	domauth "github.com/r0x16/Raidark/shared/auth/domain"
-	domdb "github.com/r0x16/Raidark/shared/domain"
+	domdatastore "github.com/r0x16/Raidark/shared/datastore/domain"
 	domenv "github.com/r0x16/Raidark/shared/env/domain"
 	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
 )
@@ -14,7 +14,7 @@ import (
  */
 type ApplicationBundle struct {
 	Log      domlogger.LogProvider
-	Database domdb.DatabaseProvider
+	Database domdatastore.DatabaseProvider
 	Auth     domauth.AuthProvider
 	Env      domenv.EnvProvider
 }

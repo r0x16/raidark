@@ -10,7 +10,7 @@ import (
 	"github.com/r0x16/Raidark/shared/auth/domain/model"
 	"github.com/r0x16/Raidark/shared/auth/driver/repositories"
 	"github.com/r0x16/Raidark/shared/auth/service"
-	"github.com/r0x16/Raidark/shared/driver/db"
+	"github.com/r0x16/Raidark/shared/datastore/driver"
 )
 
 // RefreshController handles token refresh operations
@@ -71,8 +71,8 @@ func (rc *RefreshController) Refresh(c echo.Context) error {
 }
 
 // getDatabaseProvider retrieves and validates the database provider from the bundle
-func (rc *RefreshController) getDatabaseProvider() (*db.GormPostgresDatabaseProvider, error) {
-	dbProvider, ok := rc.bundle.Database.(*db.GormPostgresDatabaseProvider)
+func (rc *RefreshController) getDatabaseProvider() (*driver.GormPostgresDatabaseProvider, error) {
+	dbProvider, ok := rc.bundle.Database.(*driver.GormPostgresDatabaseProvider)
 	if !ok {
 		rc.bundle.Log.Error("Failed to get database connection", map[string]any{
 			"error": "invalid database provider type",
@@ -108,7 +108,7 @@ func (rc *RefreshController) extractClientInfo(c echo.Context) (string, string) 
 }
 
 // initializeAuthService creates and returns an instance of the refresh service
-func (rc *RefreshController) initializeAuthService(dbProvider *db.GormPostgresDatabaseProvider) *service.AuthRefreshService {
+func (rc *RefreshController) initializeAuthService(dbProvider *driver.GormPostgresDatabaseProvider) *service.AuthRefreshService {
 	sessionRepo := repositories.NewGormSessionRepository(dbProvider.GetDataStore().Exec)
 	return service.NewAuthRefreshService(sessionRepo, rc.bundle.Auth)
 }

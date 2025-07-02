@@ -1,11 +1,10 @@
-package db
+package driver
 
 import (
 	"os"
 
-	"github.com/r0x16/Raidark/shared/domain"
-	"github.com/r0x16/Raidark/shared/domain/model/db"
-	"github.com/r0x16/Raidark/shared/driver/db/connection"
+	"github.com/r0x16/Raidark/shared/datastore/domain"
+	"github.com/r0x16/Raidark/shared/datastore/driver/connection"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -14,7 +13,7 @@ import (
  * Represents a mysql database provider connector using gorm
  */
 type GormMysqlDatabaseProvider struct {
-	Datastore *db.DataStore
+	Datastore *domain.DataStore
 }
 
 var _ domain.DatabaseProvider = &GormMysqlDatabaseProvider{}
@@ -38,7 +37,7 @@ func (g *GormMysqlDatabaseProvider) Connect() error {
 		return err
 	}
 
-	g.Datastore = db.NewDataStore(connection)
+	g.Datastore = domain.NewDataStore(connection)
 	return err
 }
 
@@ -57,6 +56,6 @@ func (g *GormMysqlDatabaseProvider) Close() error {
 	return nil
 }
 
-func (g *GormMysqlDatabaseProvider) GetDataStore() *db.DataStore {
+func (g *GormMysqlDatabaseProvider) GetDataStore() *domain.DataStore {
 	return g.Datastore
 }

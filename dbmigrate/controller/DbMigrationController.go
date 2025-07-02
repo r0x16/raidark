@@ -2,7 +2,7 @@ package controller
 
 import (
 	"github.com/r0x16/Raidark/api/drivers"
-	"github.com/r0x16/Raidark/shared/driver/db"
+	driverdatastore "github.com/r0x16/Raidark/shared/datastore/driver"
 )
 
 type DbMigrationController struct {
@@ -19,6 +19,6 @@ func (d *DbMigrationController) MigrateAction() error {
 }
 
 func (d *DbMigrationController) migrateModels() error {
-	db := d.Database.(*db.GormPostgresDatabaseProvider)
+	db := d.Database.(*driverdatastore.GormPostgresDatabaseProvider)
 	return db.GetDataStore().Exec.AutoMigrate()
 }
