@@ -4,7 +4,7 @@ import (
 	"github.com/labstack/echo/v4"
 	domauth "github.com/r0x16/Raidark/shared/auth/domain"
 	domdb "github.com/r0x16/Raidark/shared/domain"
-	"github.com/r0x16/Raidark/shared/driver/env"
+	domenv "github.com/r0x16/Raidark/shared/env/domain"
 	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
 )
 
@@ -16,7 +16,7 @@ type ApplicationBundle struct {
 	Log      domlogger.LogProvider
 	Database domdb.DatabaseProvider
 	Auth     domauth.AuthProvider
-	Env      *env.EnvProvider
+	Env      domenv.EnvProvider
 }
 
 /*

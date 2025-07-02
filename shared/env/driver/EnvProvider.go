@@ -1,13 +1,18 @@
-package env
+package driver
 
 import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/r0x16/Raidark/shared/env/domain"
 )
 
 // EnvProvider provides utilities for reading and parsing environment variables
-type EnvProvider struct{}
+type EnvProvider struct {
+}
+
+var _ domain.EnvProvider = &EnvProvider{}
 
 // NewEnvProvider creates a new instance of EnvProvider
 func NewEnvProvider() *EnvProvider {

@@ -12,7 +12,8 @@ import (
 	"github.com/r0x16/Raidark/shared/auth/domain"
 	"github.com/r0x16/Raidark/shared/auth/driver"
 	"github.com/r0x16/Raidark/shared/driver/db"
-	"github.com/r0x16/Raidark/shared/driver/env"
+	domenv "github.com/r0x16/Raidark/shared/env/domain"
+	driverenv "github.com/r0x16/Raidark/shared/env/driver"
 	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
 	drivelogger "github.com/r0x16/Raidark/shared/logger/driver"
 )
@@ -125,6 +126,6 @@ func (d *Api) setupAuth() domain.AuthProvider {
  * Setup the environment provider
  * This method creates a new environment provider for configuration management
  */
-func (d *Api) setupEnv() *env.EnvProvider {
-	return env.NewEnvProvider()
+func (d *Api) setupEnv() domenv.EnvProvider {
+	return driverenv.NewEnvProvider()
 }
