@@ -4,6 +4,7 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"github.com/r0x16/Raidark/dbmigrate"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +14,7 @@ var dbMigrationCmd = &cobra.Command{
 	Short: "Migrate database schema",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		// Migration logic here
+		dbmigrate.NewDbmigrate().Run()
 	},
 }
 

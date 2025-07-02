@@ -4,6 +4,7 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"github.com/r0x16/Raidark/dbmigrate"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +14,7 @@ var seedCmd = &cobra.Command{
 	Short: "Seeding initial data to database",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		// Seed logic here
+		dbmigrate.NewSeeder().Run()
 	},
 }
 
