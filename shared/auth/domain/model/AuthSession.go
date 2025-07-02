@@ -3,12 +3,12 @@ package model
 import (
 	"time"
 
-	"github.com/r0x16/Raidark/domain/model"
+	domdatastore "github.com/r0x16/Raidark/shared/datastore/domain"
 )
 
 // AuthSession represents a user authentication session in the database
 type AuthSession struct {
-	model.BaseModel
+	domdatastore.BaseModel
 	SessionID     string    `gorm:"uniqueIndex;type:varchar(255);not null" json:"session_id"`
 	UserID        string    `gorm:"type:varchar(255);not null" json:"user_id"`
 	Username      string    `gorm:"type:varchar(255);not null" json:"username"`
