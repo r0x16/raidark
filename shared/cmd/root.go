@@ -4,6 +4,7 @@ Copyright © 2024 r0x16
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -30,8 +31,8 @@ to quickly create a Cobra application.`,
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	err := RootCmd.Execute()
+func Execute(ctx context.Context) {
+	err := RootCmd.ExecuteContext(ctx)
 	if err != nil {
 		os.Exit(1)
 	}

@@ -1,72 +1,92 @@
 package api
 
 import (
+	"context"
 	"fmt"
-	"os"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	driverapi "github.com/r0x16/Raidark/shared/api/driver"
+	domapi "github.com/r0x16/Raidark/shared/api/domain"
+	"github.com/r0x16/Raidark/shared/api/driver"
 	apimodules "github.com/r0x16/Raidark/shared/api/driver/modules"
 	apiservices "github.com/r0x16/Raidark/shared/api/service"
-	"github.com/r0x16/Raidark/shared/auth/domain"
-	"github.com/r0x16/Raidark/shared/auth/driver"
+	domauth "github.com/r0x16/Raidark/shared/auth/domain"
 	domdatastore "github.com/r0x16/Raidark/shared/datastore/domain"
-	driverdatastore "github.com/r0x16/Raidark/shared/datastore/driver"
 	domenv "github.com/r0x16/Raidark/shared/env/domain"
-	driverenv "github.com/r0x16/Raidark/shared/env/driver"
 	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
-	drivelogger "github.com/r0x16/Raidark/shared/logger/driver"
+	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
+	providers "github.com/r0x16/Raidark/shared/providers/services"
 )
 
 // TODO: Refactorize
 
-type Api struct{}
+type Api struct {
+	AuthProvider      domauth.AuthProvider
+	LogProvider       domlogger.LogProvider
+	DatastoreProvider domdatastore.DatabaseProvider
+	EnvProvider       domenv.EnvProvider
+	ApiProvider       domapi.ApiProvider
+	Hub               *domprovider.ProviderHub
+}
 
-func NewApi() *Api {
-	return &Api{}
+func NewApi(ctx context.Context) *Api {
+	api := &Api{}
+	api.Hub = api.setupHub(ctx)
+	api.setupProviders(api.Hub)
+	return api
 }
 
 func (a *Api) Run() {
-	bundle := &driverapi.ApplicationBundle{
-		Database: a.setupDatabase(),
-		Log:      a.setupLogger(),
-		Auth:     a.setupAuth(),
-		Env:      a.setupEnv(),
-	}
-	defer bundle.Database.Close()
-
-	port := os.Getenv("API_PORT")
-	server := driverapi.NewEchoApiProvider(port, bundle)
+	defer a.DatastoreProvider.Close()
+	server := a.ApiProvider
 
 	a.registerModules(server)
 
-	service := apiservices.NewApiService(server, bundle.Log)
+	service := apiservices.NewApiService(server, a.LogProvider)
 	service.Run()
 
+}
+
+func (a *Api) setupProviders(hub *domprovider.ProviderHub) {
+	a.LogProvider = domprovider.Get[domlogger.LogProvider](hub)
+	a.AuthProvider = domprovider.Get[domauth.AuthProvider](hub)
+	a.DatastoreProvider = domprovider.Get[domdatastore.DatabaseProvider](hub)
+	a.EnvProvider = domprovider.Get[domenv.EnvProvider](hub)
+	a.ApiProvider = domprovider.Get[domapi.ApiProvider](hub)
+}
+
+func (a *Api) setupHub(ctx context.Context) *domprovider.ProviderHub {
+	hubFactory := providers.NewProviderHubFactory()
+	providers := ctx.Value("providers").([]domprovider.ProviderFactory)
+	hub := hubFactory.Create(providers)
+	return hub
 }
 
 /*
  * Register the modules
  * This method registers the modules to the server
  */
-func (a *Api) registerModules(server *driverapi.EchoApiProvider) {
+func (a *Api) registerModules(server domapi.ApiProvider) {
+
+	echoServer := a.ApiProvider.(*driver.EchoApiProvider)
 
 	rootModule := apimodules.EchoModule{
 		Api:   server,
-		Group: server.Server.Group(""),
+		Group: echoServer.Server.Group(""),
+		Hub:   a.Hub,
 	}
 
 	apiv1Module := apimodules.EchoModule{
 		Api:   server,
-		Group: server.Server.Group("/api/v1"),
+		Group: echoServer.Server.Group("/api/v1"),
+		Hub:   a.Hub,
 	}
 
 	apiv1Module.Group.Use(middleware.KeyAuthWithConfig(middleware.KeyAuthConfig{
 		KeyLookup:  "header:" + echo.HeaderAuthorization,
 		AuthScheme: "Bearer",
 		Validator: func(key string, c echo.Context) (bool, error) {
-			token, err := server.Bundle.Auth.ParseToken(key)
+			token, err := a.AuthProvider.ParseToken(key)
 			if err != nil {
 				fmt.Println(err)
 				return false, err
@@ -80,53 +100,4 @@ func (a *Api) registerModules(server *driverapi.EchoApiProvider) {
 	server.Register(&apimodules.EchoAuthModule{EchoModule: rootModule})
 	server.Register(&apimodules.EchoApiMainModule{EchoModule: apiv1Module})
 	// Add more modules here
-}
-
-/*
- * Setup the database connection
- * This method creates a new postgres database provider and connects to the database
- */
-func (d *Api) setupDatabase() domdatastore.DatabaseProvider {
-	dbProvider := &driverdatastore.GormPostgresDatabaseProvider{}
-	err := dbProvider.Connect()
-
-	if err != nil {
-		fmt.Println(err)
-		panic("Error connecting to the database:")
-	}
-
-	return dbProvider
-}
-
-/*
- * Setup the logger
- * This method creates a new std out log manager and sets the log level
- */
-func (d *Api) setupLogger() domlogger.LogProvider {
-	logManager := drivelogger.NewStdOutLogManager()
-	level := domlogger.ParseLogLevel(os.Getenv("LOG_LEVEL"))
-	logManager.SetLogLevel(level)
-	return logManager
-}
-
-/*
- * Setup the auth provider
- * This method creates a new casdoor auth provider and connects to the auth provider
- */
-func (d *Api) setupAuth() domain.AuthProvider {
-	authProvider := driver.NewCasdoorAuthProviderFromEnv()
-	err := authProvider.Initialize()
-	if err != nil {
-		fmt.Println(err)
-		panic("Error initializing the auth provider:")
-	}
-	return authProvider
-}
-
-/*
- * Setup the environment provider
- * This method creates a new environment provider for configuration management
- */
-func (d *Api) setupEnv() domenv.EnvProvider {
-	return driverenv.NewEnvProvider()
 }

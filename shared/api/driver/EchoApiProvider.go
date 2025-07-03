@@ -7,6 +7,9 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/r0x16/Raidark/shared/api/domain"
+	domenv "github.com/r0x16/Raidark/shared/env/domain"
+	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
+	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
 )
 
 type EchoApiProvider struct {
@@ -14,17 +17,21 @@ type EchoApiProvider struct {
 	port    string
 
 	Server *echo.Echo
-	Bundle *ApplicationBundle
+
+	// Providers
+	Log domlogger.LogProvider
+	Env domenv.EnvProvider
 }
 
 var _ domain.ApiProvider = &EchoApiProvider{}
 
-func NewEchoApiProvider(port string, bundle *ApplicationBundle) *EchoApiProvider {
+func NewEchoApiProvider(port string, hub *domprovider.ProviderHub) *EchoApiProvider {
 	return &EchoApiProvider{
 		modules: []domain.ApiModule{},
 		port:    port,
 		Server:  echo.New(),
-		Bundle:  bundle,
+		Log:     domprovider.Get[domlogger.LogProvider](hub),
+		Env:     domprovider.Get[domenv.EnvProvider](hub),
 	}
 }
 
@@ -45,10 +52,10 @@ func (e *EchoApiProvider) Setup() error {
 
 // configureCORS sets up CORS middleware using environment variables
 func (e *EchoApiProvider) configureCORS() {
-	allowOrigins := e.Bundle.Env.GetSlice("CORS_ALLOW_ORIGINS", []string{"*"})
-	allowHeaders := e.Bundle.Env.GetSlice("CORS_ALLOW_HEADERS", []string{"Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"})
-	allowMethods := e.Bundle.Env.GetSlice("CORS_ALLOW_METHODS", []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions, http.MethodHead})
-	allowCredentials := e.Bundle.Env.GetBool("CORS_ALLOW_CREDENTIALS", false)
+	allowOrigins := e.Env.GetSlice("CORS_ALLOW_ORIGINS", []string{"*"})
+	allowHeaders := e.Env.GetSlice("CORS_ALLOW_HEADERS", []string{"Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"})
+	allowMethods := e.Env.GetSlice("CORS_ALLOW_METHODS", []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions, http.MethodHead})
+	allowCredentials := e.Env.GetBool("CORS_ALLOW_CREDENTIALS", false)
 
 	corsConfig := middleware.CORSConfig{
 		Skipper:          middleware.DefaultSkipper,
@@ -60,7 +67,7 @@ func (e *EchoApiProvider) configureCORS() {
 
 	e.Server.Use(middleware.CORSWithConfig(corsConfig))
 
-	e.Bundle.Log.Info("CORS middleware configured", map[string]any{
+	e.Log.Info("CORS middleware configured", map[string]any{
 		"allow_origins":     allowOrigins,
 		"allow_headers":     allowHeaders,
 		"allow_methods":     allowMethods,
@@ -70,18 +77,18 @@ func (e *EchoApiProvider) configureCORS() {
 
 // configureCSRF sets up CSRF middleware using environment variables
 func (e *EchoApiProvider) configureCSRF() {
-	csrfEnabled := e.Bundle.Env.GetBool("CSRF_ENABLED", false)
+	csrfEnabled := e.Env.GetBool("CSRF_ENABLED", false)
 
 	if !csrfEnabled {
-		e.Bundle.Log.Info("CSRF middleware disabled by configuration", nil)
+		e.Log.Info("CSRF middleware disabled by configuration", nil)
 		return
 	}
 
-	tokenLength := e.Bundle.Env.GetInt("CSRF_TOKEN_LENGTH", 32)
-	cookieName := e.Bundle.Env.GetString("CSRF_COOKIE_NAME", "_csrf")
-	cookieSecure := e.Bundle.Env.GetBool("CSRF_COOKIE_SECURE", false)
-	tokenLookup := e.Bundle.Env.GetString("CSRF_TOKEN_LOOKUP", "cookie:_csrf")
-	cookieMaxAge := e.Bundle.Env.GetInt("CSRF_COOKIE_MAX_AGE", 86400)
+	tokenLength := e.Env.GetInt("CSRF_TOKEN_LENGTH", 32)
+	cookieName := e.Env.GetString("CSRF_COOKIE_NAME", "_csrf")
+	cookieSecure := e.Env.GetBool("CSRF_COOKIE_SECURE", false)
+	tokenLookup := e.Env.GetString("CSRF_TOKEN_LOOKUP", "cookie:_csrf")
+	cookieMaxAge := e.Env.GetInt("CSRF_COOKIE_MAX_AGE", 86400)
 
 	csrfConfig := middleware.CSRFConfig{
 		Skipper:        middleware.DefaultSkipper,
@@ -97,7 +104,7 @@ func (e *EchoApiProvider) configureCSRF() {
 
 	e.Server.Use(middleware.CSRFWithConfig(csrfConfig))
 
-	e.Bundle.Log.Info("CSRF middleware configured", map[string]any{
+	e.Log.Info("CSRF middleware configured", map[string]any{
 		"token_length": tokenLength,
 		"cookie_name":  cookieName,
 		"enabled":      true,
@@ -107,7 +114,7 @@ func (e *EchoApiProvider) configureCSRF() {
 // Run implements domain.ApiProvider.
 func (e *EchoApiProvider) Run() error {
 	if _, err := strconv.Atoi(e.port); err != nil {
-		e.Bundle.Log.Critical("Invalid port number, must to be a number", map[string]any{
+		e.Log.Critical("Invalid port number, must to be a number", map[string]any{
 			"port":  e.port,
 			"error": err.Error(),
 		})

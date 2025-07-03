@@ -5,23 +5,28 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	driverapi "github.com/r0x16/Raidark/shared/api/driver"
 	"github.com/r0x16/Raidark/shared/auth/domain"
 	"github.com/r0x16/Raidark/shared/auth/domain/model"
 	"github.com/r0x16/Raidark/shared/auth/driver/repositories"
 	"github.com/r0x16/Raidark/shared/auth/service"
-	driverdatastore "github.com/r0x16/Raidark/shared/datastore/driver"
+	domdatastore "github.com/r0x16/Raidark/shared/datastore/domain"
+	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
+	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
 )
 
 // RefreshController handles token refresh operations
 type RefreshController struct {
-	bundle *driverapi.ApplicationBundle
+	Datastore domdatastore.DatabaseProvider
+	Auth      domain.AuthProvider
+	Log       domlogger.LogProvider
 }
 
 // RefreshAction creates a RefreshController instance and delegates to the Refresh method
-func RefreshAction(c echo.Context, bundle *driverapi.ApplicationBundle) error {
+func RefreshAction(c echo.Context, hub *domprovider.ProviderHub) error {
 	controller := &RefreshController{
-		bundle: bundle,
+		Datastore: domprovider.Get[domdatastore.DatabaseProvider](hub),
+		Auth:      domprovider.Get[domain.AuthProvider](hub),
+		Log:       domprovider.Get[domlogger.LogProvider](hub),
 	}
 	return controller.Refresh(c)
 }
@@ -29,14 +34,6 @@ func RefreshAction(c echo.Context, bundle *driverapi.ApplicationBundle) error {
 // Refresh handles the token refresh process
 // It validates the session, refreshes the access token, and updates the session cookie
 func (rc *RefreshController) Refresh(c echo.Context) error {
-	// Get database connection
-	dbProvider, err := rc.getDatabaseProvider()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Internal server error",
-		})
-	}
-
 	// Get session ID from cookie
 	sessionID, err := rc.getSessionFromCookie(c)
 	if err != nil {
@@ -49,7 +46,7 @@ func (rc *RefreshController) Refresh(c echo.Context) error {
 	userAgent, ipAddress := rc.extractClientInfo(c)
 
 	// Initialize auth service
-	authService := rc.initializeAuthService(dbProvider)
+	authService := rc.initializeAuthService(rc.Datastore)
 
 	// Attempt to refresh tokens
 	session, token, err := rc.refreshTokens(authService, sessionID, userAgent, ipAddress)
@@ -70,23 +67,11 @@ func (rc *RefreshController) Refresh(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-// getDatabaseProvider retrieves and validates the database provider from the bundle
-func (rc *RefreshController) getDatabaseProvider() (*driverdatastore.GormPostgresDatabaseProvider, error) {
-	dbProvider, ok := rc.bundle.Database.(*driverdatastore.GormPostgresDatabaseProvider)
-	if !ok {
-		rc.bundle.Log.Error("Failed to get database connection", map[string]any{
-			"error": "invalid database provider type",
-		})
-		return nil, &echo.HTTPError{Code: http.StatusInternalServerError}
-	}
-	return dbProvider, nil
-}
-
 // getSessionFromCookie extracts and validates the session ID from the HTTP cookie
 func (rc *RefreshController) getSessionFromCookie(c echo.Context) (string, error) {
 	cookie, err := c.Cookie("app_session")
 	if err != nil {
-		rc.bundle.Log.Warning("No session cookie found", map[string]any{
+		rc.Log.Warning("No session cookie found", map[string]any{
 			"error": err.Error(),
 		})
 		return "", err
@@ -108,16 +93,16 @@ func (rc *RefreshController) extractClientInfo(c echo.Context) (string, string) 
 }
 
 // initializeAuthService creates and returns an instance of the refresh service
-func (rc *RefreshController) initializeAuthService(dbProvider *driverdatastore.GormPostgresDatabaseProvider) *service.AuthRefreshService {
+func (rc *RefreshController) initializeAuthService(dbProvider domdatastore.DatabaseProvider) *service.AuthRefreshService {
 	sessionRepo := repositories.NewGormSessionRepository(dbProvider.GetDataStore().Exec)
-	return service.NewAuthRefreshService(sessionRepo, rc.bundle.Auth)
+	return service.NewAuthRefreshService(sessionRepo, rc.Auth)
 }
 
 // refreshTokens attempts to refresh the access token using the session's refresh token
 func (rc *RefreshController) refreshTokens(authService *service.AuthRefreshService, sessionID, userAgent, ipAddress string) (*model.AuthSession, *domain.Token, error) {
 	session, token, err := authService.RefreshTokens(sessionID, userAgent, ipAddress)
 	if err != nil {
-		rc.bundle.Log.Warning("Failed to refresh tokens", map[string]any{
+		rc.Log.Warning("Failed to refresh tokens", map[string]any{
 			"error":      err.Error(),
 			"session_id": sessionID,
 		})
@@ -159,7 +144,7 @@ func (rc *RefreshController) buildResponse(token *domain.Token) domain.RefreshRe
 
 // logSuccessfulRefresh logs the successful token refresh operation
 func (rc *RefreshController) logSuccessfulRefresh(session *model.AuthSession) {
-	rc.bundle.Log.Info("Token refresh successful", map[string]any{
+	rc.Log.Info("Token refresh successful", map[string]any{
 		"user_id":    session.UserID,
 		"username":   session.Username,
 		"session_id": session.SessionID,

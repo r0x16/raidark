@@ -5,23 +5,28 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	driverapi "github.com/r0x16/Raidark/shared/api/driver"
 	"github.com/r0x16/Raidark/shared/auth/domain"
 	"github.com/r0x16/Raidark/shared/auth/domain/model"
 	"github.com/r0x16/Raidark/shared/auth/driver/repositories"
 	"github.com/r0x16/Raidark/shared/auth/service"
-	driverdatastore "github.com/r0x16/Raidark/shared/datastore/driver"
+	domdatastore "github.com/r0x16/Raidark/shared/datastore/domain"
+	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
+	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
 )
 
 // ExchangeController handles OAuth2 authorization code exchange operations
 type ExchangeController struct {
-	bundle *driverapi.ApplicationBundle
+	Datastore domdatastore.DatabaseProvider
+	Auth      domain.AuthProvider
+	Log       domlogger.LogProvider
 }
 
 // ExchangeAction creates an ExchangeController instance and delegates to the Exchange method
-func ExchangeAction(c echo.Context, bundle *driverapi.ApplicationBundle) error {
+func ExchangeAction(c echo.Context, hub *domprovider.ProviderHub) error {
 	controller := &ExchangeController{
-		bundle: bundle,
+		Datastore: domprovider.Get[domdatastore.DatabaseProvider](hub),
+		Auth:      domprovider.Get[domain.AuthProvider](hub),
+		Log:       domprovider.Get[domlogger.LogProvider](hub),
 	}
 	return controller.Exchange(c)
 }
@@ -30,14 +35,6 @@ func ExchangeAction(c echo.Context, bundle *driverapi.ApplicationBundle) error {
 // It validates the request, exchanges the code for tokens, creates a session,
 // and returns the access token with user information
 func (ec *ExchangeController) Exchange(c echo.Context) error {
-	// Get database connection
-	dbProvider, err := ec.getDatabaseProvider()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Internal server error",
-		})
-	}
-
 	// Parse and validate request
 	req, err := ec.parseRequest(c)
 	if err != nil {
@@ -48,7 +45,7 @@ func (ec *ExchangeController) Exchange(c echo.Context) error {
 	userAgent, ipAddress := ec.extractClientInfo(c)
 
 	// Initialize services
-	authService := ec.initializeAuthService(dbProvider)
+	authService := ec.initializeAuthService(ec.Datastore)
 
 	// Exchange code for tokens and create session
 	session, token, claims, err := ec.exchangeCodeForTokens(authService, req, userAgent, ipAddress)
@@ -69,23 +66,11 @@ func (ec *ExchangeController) Exchange(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-// getDatabaseProvider retrieves and validates the database provider from the bundle
-func (ec *ExchangeController) getDatabaseProvider() (*driverdatastore.GormPostgresDatabaseProvider, error) {
-	dbProvider, ok := ec.bundle.Database.(*driverdatastore.GormPostgresDatabaseProvider)
-	if !ok {
-		ec.bundle.Log.Error("Failed to get database connection", map[string]any{
-			"error": "invalid database provider type",
-		})
-		return nil, &echo.HTTPError{Code: http.StatusInternalServerError}
-	}
-	return dbProvider, nil
-}
-
 // parseRequest parses and validates the exchange request from the HTTP context
 func (ec *ExchangeController) parseRequest(c echo.Context) (*domain.ExchangeRequest, error) {
 	var req domain.ExchangeRequest
 	if err := c.Bind(&req); err != nil {
-		ec.bundle.Log.Warning("Invalid exchange request", map[string]any{
+		ec.Log.Warning("Invalid exchange request", map[string]any{
 			"error": err.Error(),
 		})
 		return nil, c.JSON(http.StatusBadRequest, map[string]string{
@@ -111,16 +96,16 @@ func (ec *ExchangeController) extractClientInfo(c echo.Context) (string, string)
 }
 
 // initializeAuthService creates and returns an instance of the authentication service
-func (ec *ExchangeController) initializeAuthService(dbProvider *driverdatastore.GormPostgresDatabaseProvider) *service.AuthExchangeService {
+func (ec *ExchangeController) initializeAuthService(dbProvider domdatastore.DatabaseProvider) *service.AuthExchangeService {
 	sessionRepo := repositories.NewGormSessionRepository(dbProvider.GetDataStore().Exec)
-	return service.NewAuthExchangeService(sessionRepo, ec.bundle.Auth)
+	return service.NewAuthExchangeService(sessionRepo, ec.Auth)
 }
 
 // exchangeCodeForTokens performs the OAuth2 code exchange and returns session, token, and claims
 func (ec *ExchangeController) exchangeCodeForTokens(authService *service.AuthExchangeService, req *domain.ExchangeRequest, userAgent, ipAddress string) (*model.AuthSession, *domain.Token, *domain.Claims, error) {
 	session, token, claims, err := authService.ExchangeCodeForTokens(req.Code, req.State, userAgent, ipAddress)
 	if err != nil {
-		ec.bundle.Log.Error("Failed to exchange code for tokens", map[string]any{
+		ec.Log.Error("Failed to exchange code for tokens", map[string]any{
 			"error": err.Error(),
 			"code":  req.Code,
 			"state": req.State,
@@ -169,7 +154,7 @@ func (ec *ExchangeController) buildResponse(token *domain.Token, claims *domain.
 
 // logSuccessfulExchange logs the successful token exchange operation
 func (ec *ExchangeController) logSuccessfulExchange(claims *domain.Claims, session *model.AuthSession) {
-	ec.bundle.Log.Info("Token exchange successful", map[string]any{
+	ec.Log.Info("Token exchange successful", map[string]any{
 		"user_id":    claims.Subject,
 		"username":   claims.Username,
 		"session_id": session.SessionID,

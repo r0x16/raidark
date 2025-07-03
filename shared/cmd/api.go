@@ -4,7 +4,11 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"context"
+
 	"github.com/r0x16/Raidark/shared/api"
+	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
+	"github.com/r0x16/Raidark/shared/providers/driver"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +18,20 @@ var apiCmd = &cobra.Command{
 	Short: "Starts API Server",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		api := api.NewApi()
+		ctx := cmd.Context()
+
+		// Configure providers in context
+		providers := []domprovider.ProviderFactory{
+			&driver.EnvProviderFactory{},
+			&driver.LoggerProviderFactory{},
+			&driver.DatastoreProviderFactory{},
+			&driver.AuthProviderFactory{},
+			&driver.ApiProviderFactory{},
+		}
+
+		ctxWithProviders := context.WithValue(ctx, "providers", providers)
+
+		api := api.NewApi(ctxWithProviders)
 		api.Run()
 	},
 }

@@ -4,6 +4,7 @@ Copyright © 2024 r0x16
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -23,5 +24,6 @@ func loadEnvIfExists() {
 
 func main() {
 	loadEnvIfExists()
-	cmd.Execute()
+	ctx := context.Background()
+	cmd.Execute(ctx)
 }

@@ -4,22 +4,27 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	driverapi "github.com/r0x16/Raidark/shared/api/driver"
 	"github.com/r0x16/Raidark/shared/auth/domain"
 	"github.com/r0x16/Raidark/shared/auth/driver/repositories"
 	"github.com/r0x16/Raidark/shared/auth/service"
-	driverdatastore "github.com/r0x16/Raidark/shared/datastore/driver"
+	domdatastore "github.com/r0x16/Raidark/shared/datastore/domain"
+	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
+	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
 )
 
 // LogoutController handles user logout operations
 type LogoutController struct {
-	bundle *driverapi.ApplicationBundle
+	Datastore domdatastore.DatabaseProvider
+	Auth      domain.AuthProvider
+	Log       domlogger.LogProvider
 }
 
 // LogoutAction creates a LogoutController instance and delegates to the Logout method
-func LogoutAction(c echo.Context, bundle *driverapi.ApplicationBundle) error {
+func LogoutAction(c echo.Context, hub *domprovider.ProviderHub) error {
 	controller := &LogoutController{
-		bundle: bundle,
+		Datastore: domprovider.Get[domdatastore.DatabaseProvider](hub),
+		Auth:      domprovider.Get[domain.AuthProvider](hub),
+		Log:       domprovider.Get[domlogger.LogProvider](hub),
 	}
 	return controller.Logout(c)
 }
@@ -27,13 +32,6 @@ func LogoutAction(c echo.Context, bundle *driverapi.ApplicationBundle) error {
 // Logout handles the user logout process
 // It invalidates the session in the database and clears the session cookie
 func (lc *LogoutController) Logout(c echo.Context) error {
-	// Get database connection
-	dbProvider, err := lc.getDatabaseProvider()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Internal server error",
-		})
-	}
 
 	// Get session ID from cookie
 	sessionID, err := lc.getSessionFromCookie(c)
@@ -43,7 +41,7 @@ func (lc *LogoutController) Logout(c echo.Context) error {
 	}
 
 	// Initialize auth service
-	authService := lc.initializeAuthService(dbProvider)
+	authService := lc.initializeAuthService(lc.Datastore)
 
 	// Invalidate session in database
 	err = lc.invalidateSession(authService, sessionID)
@@ -66,18 +64,6 @@ func (lc *LogoutController) Logout(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-// getDatabaseProvider retrieves and validates the database provider from the bundle
-func (lc *LogoutController) getDatabaseProvider() (*driverdatastore.GormPostgresDatabaseProvider, error) {
-	dbProvider, ok := lc.bundle.Database.(*driverdatastore.GormPostgresDatabaseProvider)
-	if !ok {
-		lc.bundle.Log.Error("Failed to get database connection", map[string]any{
-			"error": "invalid database provider type",
-		})
-		return nil, &echo.HTTPError{Code: http.StatusInternalServerError}
-	}
-	return dbProvider, nil
-}
-
 // getSessionFromCookie extracts the session ID from the HTTP cookie
 func (lc *LogoutController) getSessionFromCookie(c echo.Context) (string, error) {
 	cookie, err := c.Cookie("app_session")
@@ -97,7 +83,7 @@ func (lc *LogoutController) getSessionFromCookie(c echo.Context) (string, error)
 func (lc *LogoutController) handleNoSession(c echo.Context, err error) error {
 	if err.Error() == "http: named cookie not present" {
 		// If no cookie exists, consider logout successful (already logged out)
-		lc.bundle.Log.Info("Logout attempt with no session cookie", map[string]any{
+		lc.Log.Info("Logout attempt with no session cookie", map[string]any{
 			"ip": c.RealIP(),
 		})
 
@@ -119,9 +105,9 @@ func (lc *LogoutController) handleNoSession(c echo.Context, err error) error {
 }
 
 // initializeAuthService creates and returns an instance of the logout service
-func (lc *LogoutController) initializeAuthService(dbProvider *driverdatastore.GormPostgresDatabaseProvider) *service.AuthLogoutService {
+func (lc *LogoutController) initializeAuthService(dbProvider domdatastore.DatabaseProvider) *service.AuthLogoutService {
 	sessionRepo := repositories.NewGormSessionRepository(dbProvider.GetDataStore().Exec)
-	return service.NewAuthLogoutService(sessionRepo, lc.bundle.Auth)
+	return service.NewAuthLogoutService(sessionRepo, lc.Auth)
 }
 
 // invalidateSession attempts to invalidate the session in the database
@@ -133,12 +119,12 @@ func (lc *LogoutController) invalidateSession(authService *service.AuthLogoutSer
 func (lc *LogoutController) handleSessionInvalidationError(sessionID string, err error) {
 	if err.Error() == "session not found" {
 		// Session was already deleted, consider logout successful
-		lc.bundle.Log.Info("Logout attempt with non-existent session", map[string]any{
+		lc.Log.Info("Logout attempt with non-existent session", map[string]any{
 			"session_id": sessionID,
 		})
 	} else {
 		// Log error but still proceed with cookie clearing
-		lc.bundle.Log.Error("Failed to invalidate session", map[string]any{
+		lc.Log.Error("Failed to invalidate session", map[string]any{
 			"error":      err.Error(),
 			"session_id": sessionID,
 		})
@@ -159,7 +145,7 @@ func (lc *LogoutController) clearSessionCookie(c echo.Context) {
 
 // logSuccessfulLogout logs the successful logout operation
 func (lc *LogoutController) logSuccessfulLogout(sessionID, ipAddress string) {
-	lc.bundle.Log.Info("User logged out successfully", map[string]any{
+	lc.Log.Info("User logged out successfully", map[string]any{
 		"session_id": sessionID,
 		"ip":         ipAddress,
 	})

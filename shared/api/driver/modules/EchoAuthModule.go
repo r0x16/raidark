@@ -19,9 +19,9 @@ func (e *EchoAuthModule) Name() string {
 // Setup implements domain.ApiModule.
 func (e *EchoAuthModule) Setup() error {
 
-	e.Group.POST("/exchange", e.Api.Bundle.ActionInjection(controller.ExchangeAction))
-	e.Group.POST("/refresh", e.Api.Bundle.ActionInjection(controller.RefreshAction))
-	e.Group.POST("/logout", e.Api.Bundle.ActionInjection(controller.LogoutAction))
+	e.Group.POST("/exchange", e.ActionInjection(controller.ExchangeAction))
+	e.Group.POST("/refresh", e.ActionInjection(controller.RefreshAction))
+	e.Group.POST("/logout", e.ActionInjection(controller.LogoutAction))
 
 	return nil
 }
