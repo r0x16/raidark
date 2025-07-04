@@ -6,7 +6,7 @@ import (
 )
 
 type EchoAuthModule struct {
-	EchoModule
+	*EchoModule
 }
 
 var _ domain.ApiModule = &EchoAuthModule{}

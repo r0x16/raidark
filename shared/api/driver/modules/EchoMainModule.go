@@ -10,7 +10,7 @@ import (
 )
 
 type EchoMainModule struct {
-	EchoModule
+	*EchoModule
 }
 
 var _ domain.ApiModule = &EchoMainModule{}

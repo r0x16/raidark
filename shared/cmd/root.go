@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"os"
 
+	domapi "github.com/r0x16/Raidark/shared/api/domain"
+	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -29,9 +31,18 @@ to quickly create a Cobra application.`,
 	// Run: func(cmd *cobra.Command, args []string) { },
 }
 
+type contextKey string
+
+const (
+	hubKey     contextKey = "hub"
+	modulesKey contextKey = "modules"
+)
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute(ctx context.Context) {
+func Execute(hub *domprovider.ProviderHub, modules []domapi.ApiModule) {
+	ctx := context.WithValue(context.Background(), hubKey, hub)
+	ctx = context.WithValue(ctx, modulesKey, modules)
 	err := RootCmd.ExecuteContext(ctx)
 	if err != nil {
 		os.Exit(1)
