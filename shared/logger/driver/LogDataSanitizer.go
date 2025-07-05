@@ -16,7 +16,7 @@ func NewLogDataSanitizer() *LogDataSanitizer {
 	// Custom spew configuration for minimal, readable logging output
 	config := &spew.ConfigState{
 		// Limit depth to prevent deep nesting
-		MaxDepth: 2,
+		MaxDepth: 4,
 
 		// Disable verbose information
 		DisableMethods:          true,
