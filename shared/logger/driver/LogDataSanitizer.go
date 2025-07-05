@@ -1,6 +1,8 @@
 package logger
 
 import (
+	"log/slog"
+
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -72,4 +74,14 @@ func (s *LogDataSanitizer) SanitizeData(data map[string]any) map[string]any {
 	}
 
 	return sanitized
+}
+
+// ParseDataForSlog parses data of type map to a slice of slog Attrs with sanitization
+func (s *LogDataSanitizer) ParseDataForSlog(data map[string]any) []any {
+	attrs := make([]any, 0, len(data))
+	for key, value := range data {
+		sanitizedValue := s.SanitizeValue(value)
+		attrs = append(attrs, slog.Any(key, sanitizedValue))
+	}
+	return attrs
 }

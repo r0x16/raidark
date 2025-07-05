@@ -29,7 +29,7 @@ func (s *StdOutLogManager) Debug(msg string, data map[string]any) {
 	if s.logLevel > domain.Debug {
 		return
 	}
-	s.logger.Debug(msg, s.parseData(data)...)
+	s.logger.Debug(msg, s.sanitizer.ParseDataForSlog(data)...)
 }
 
 // Info implements logger.LogProvider.
@@ -37,7 +37,7 @@ func (s *StdOutLogManager) Info(msg string, data map[string]any) {
 	if s.logLevel > domain.Info {
 		return
 	}
-	s.logger.Info(msg, s.parseData(data)...)
+	s.logger.Info(msg, s.sanitizer.ParseDataForSlog(data)...)
 }
 
 // Warning implements logger.LogProvider.
@@ -45,30 +45,20 @@ func (s *StdOutLogManager) Warning(msg string, data map[string]any) {
 	if s.logLevel > domain.Warning {
 		return
 	}
-	s.logger.Warn(msg, s.parseData(data)...)
+	s.logger.Warn(msg, s.sanitizer.ParseDataForSlog(data)...)
 }
 
 // Error implements logger.LogProvider.
 func (s *StdOutLogManager) Error(msg string, data map[string]any) {
-	s.logger.Error(msg, s.parseData(data)...)
+	s.logger.Error(msg, s.sanitizer.ParseDataForSlog(data)...)
 }
 
 // Critical implements logger.LogProvider.
 func (s *StdOutLogManager) Critical(msg string, data map[string]any) {
-	s.logger.Error(msg, s.parseData(data)...)
+	s.logger.Error(msg, s.sanitizer.ParseDataForSlog(data)...)
 }
 
 // SetLogLevel implements logger.LogProvider.
 func (s *StdOutLogManager) SetLogLevel(level domain.LogLevel) {
 	s.logLevel = level
-}
-
-// Parses data of type map to a slice of slog Attrs.
-func (s *StdOutLogManager) parseData(data map[string]any) []any {
-	attrs := make([]any, 0, len(data))
-	for key, value := range data {
-		sanitizedValue := s.sanitizer.SanitizeValue(value)
-		attrs = append(attrs, slog.Any(key, sanitizedValue))
-	}
-	return attrs
 }
