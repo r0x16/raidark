@@ -55,3 +55,7 @@ func (e *EchoMainModule) Setup() error {
 
 	return nil
 }
+
+func (e *EchoMainModule) GetModel() []any {
+	return []any{}
+}
