@@ -1,12 +1,10 @@
 package logger
 
 import (
-	"encoding/json"
-	"fmt"
 	"log/slog"
 	"os"
-	"reflect"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/r0x16/Raidark/shared/logger/domain"
 )
 
@@ -74,162 +72,22 @@ func (s *StdOutLogManager) parseData(data map[string]any) []any {
 	return attrs
 }
 
-// sanitizeValue converts complex values that cannot be JSON serialized to simpler representations
+// sanitizeValue converts complex values that cannot be JSON serialized to safe representations
 func (s *StdOutLogManager) sanitizeValue(value any) any {
 	if value == nil {
 		return nil
 	}
 
-	// Try to marshal to JSON to detect circular references or unsupported types
-	if _, err := json.Marshal(value); err != nil {
-		// If JSON marshalling fails, return a safe representation
-		return s.createSafeRepresentation(value)
-	}
+	// Use spew to safely convert complex structures to strings
+	// This automatically handles circular references and provides readable output
+	safeValue := spew.Sprintf("%+v", value)
 
-	// For complex types, we might still want to limit depth
-	return s.limitDepth(value)
-}
-
-// createSafeRepresentation creates a safe representation of complex values
-func (s *StdOutLogManager) createSafeRepresentation(value any) any {
-	if value == nil {
-		return nil
-	}
-
-	v := reflect.ValueOf(value)
-	t := reflect.TypeOf(value)
-
-	switch v.Kind() {
-	case reflect.Ptr:
-		if v.IsNil() {
-			return fmt.Sprintf("<%s: nil>", t.String())
-		}
-		return fmt.Sprintf("<%s: %p>", t.String(), value)
-	case reflect.Struct:
-		return s.extractStructFields(v, t)
-	case reflect.Slice, reflect.Array:
-		return fmt.Sprintf("<%s: length=%d>", t.String(), v.Len())
-	case reflect.Map:
-		return fmt.Sprintf("<%s: size=%d>", t.String(), v.Len())
-	case reflect.Chan:
-		return fmt.Sprintf("<%s: %p>", t.String(), value)
-	case reflect.Func:
-		return fmt.Sprintf("<%s: %p>", t.String(), value)
+	// For simple types, try to return them as-is if possible
+	switch v := value.(type) {
+	case string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, bool:
+		return v
 	default:
-		return fmt.Sprintf("<%s: %v>", t.String(), value)
-	}
-}
-
-// extractStructFields extracts basic information from struct fields
-func (s *StdOutLogManager) extractStructFields(v reflect.Value, t reflect.Type) map[string]any {
-	result := make(map[string]any)
-	result["_type"] = t.String()
-
-	// Only extract first level fields and limit to avoid circular references
-	numFields := v.NumField()
-	if numFields > 10 {
-		numFields = 10 // Limit number of fields to prevent massive logs
-	}
-
-	for i := 0; i < numFields; i++ {
-		field := t.Field(i)
-		fieldValue := v.Field(i)
-
-		// Skip unexported fields
-		if !field.IsExported() {
-			continue
-		}
-
-		// Only include simple types in the first level
-		switch fieldValue.Kind() {
-		case reflect.String:
-			result[field.Name] = fieldValue.String()
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			result[field.Name] = fieldValue.Int()
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			result[field.Name] = fieldValue.Uint()
-		case reflect.Float32, reflect.Float64:
-			result[field.Name] = fieldValue.Float()
-		case reflect.Bool:
-			result[field.Name] = fieldValue.Bool()
-		case reflect.Ptr:
-			if fieldValue.IsNil() {
-				result[field.Name] = nil
-			} else {
-				result[field.Name] = fmt.Sprintf("<%s: %p>", fieldValue.Type().String(), fieldValue.Interface())
-			}
-		default:
-			result[field.Name] = fmt.Sprintf("<%s>", fieldValue.Type().String())
-		}
-	}
-
-	return result
-}
-
-// limitDepth limits the depth of complex structures to prevent deep nesting
-func (s *StdOutLogManager) limitDepth(value any) any {
-	if value == nil {
-		return nil
-	}
-
-	v := reflect.ValueOf(value)
-	switch v.Kind() {
-	case reflect.Slice, reflect.Array:
-		// For slices/arrays, limit to first few elements and their basic info
-		length := v.Len()
-		if length > 5 {
-			simplified := make([]any, 5)
-			for i := 0; i < 5; i++ {
-				elem := v.Index(i).Interface()
-				simplified[i] = s.simplifyElement(elem)
-			}
-			return map[string]any{
-				"_type":      fmt.Sprintf("%s", v.Type().String()),
-				"_length":    length,
-				"_elements":  simplified,
-				"_truncated": true,
-			}
-		}
-		// For small arrays, still simplify elements
-		simplified := make([]any, length)
-		for i := 0; i < length; i++ {
-			elem := v.Index(i).Interface()
-			simplified[i] = s.simplifyElement(elem)
-		}
-		return simplified
-	case reflect.Map:
-		return fmt.Sprintf("<%s: size=%d>", v.Type().String(), v.Len())
-	default:
-		return value
-	}
-}
-
-// simplifyElement creates a simplified representation of an element
-func (s *StdOutLogManager) simplifyElement(elem any) any {
-	if elem == nil {
-		return nil
-	}
-
-	v := reflect.ValueOf(elem)
-	t := reflect.TypeOf(elem)
-
-	switch v.Kind() {
-	case reflect.Ptr:
-		if v.IsNil() {
-			return fmt.Sprintf("<%s: nil>", t.String())
-		}
-		return fmt.Sprintf("<%s: %p>", t.String(), elem)
-	case reflect.Struct:
-		return fmt.Sprintf("<%s>", t.String())
-	case reflect.Slice, reflect.Array:
-		return fmt.Sprintf("<%s: length=%d>", t.String(), v.Len())
-	case reflect.Map:
-		return fmt.Sprintf("<%s: size=%d>", t.String(), v.Len())
-	default:
-		// For simple types, return as is if they can be JSON serialized
-		if _, err := json.Marshal(elem); err == nil {
-			return elem
-		}
-		return fmt.Sprintf("<%s: %v>", t.String(), elem)
+		// For complex types, return the safe string representation
+		return safeValue
 	}
 }
