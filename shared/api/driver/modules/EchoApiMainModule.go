@@ -27,7 +27,3 @@ func (e *EchoApiMainModule) Setup() error {
 
 	return nil
 }
-
-func (e *EchoApiMainModule) GetModel() []any {
-	return []any{}
-}

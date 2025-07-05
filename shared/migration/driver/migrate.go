@@ -11,16 +11,16 @@ import (
 )
 
 type Dbmigrate struct {
-	hub         *domprovider.ProviderHub
-	modules     []apidomain.ApiModule
-	logProvider domlogger.LogProvider
+	modules          []apidomain.ApiModule
+	logProvider      domlogger.LogProvider
+	databaseProvider domdatastore.DatabaseProvider
 }
 
 func NewDbmigrate(hub *domprovider.ProviderHub, modules []apidomain.ApiModule) *Dbmigrate {
 	return &Dbmigrate{
-		hub:         hub,
-		modules:     modules,
-		logProvider: domprovider.Get[domlogger.LogProvider](hub),
+		modules:          modules,
+		logProvider:      domprovider.Get[domlogger.LogProvider](hub),
+		databaseProvider: domprovider.Get[domdatastore.DatabaseProvider](hub),
 	}
 }
 
@@ -28,7 +28,7 @@ func (d *Dbmigrate) Run() {
 
 	dbmigrator := &controller.DbMigrationController{
 		LogProvider:      d.logProvider,
-		DatabaseProvider: domprovider.Get[domdatastore.DatabaseProvider](d.hub),
+		DatabaseProvider: d.databaseProvider,
 		Modules:          d.modules,
 	}
 	err := dbmigrator.MigrateAction()

@@ -4,7 +4,9 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	apidomain "github.com/r0x16/Raidark/shared/api/domain"
 	drivermigration "github.com/r0x16/Raidark/shared/migration/driver"
+	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +16,9 @@ var seedCmd = &cobra.Command{
 	Short: "Seeding initial data to database",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		drivermigration.NewSeeder().Run()
+		modules := cmd.Context().Value(modulesKey).([]apidomain.ApiModule)
+		hub := cmd.Context().Value(hubKey).(*domprovider.ProviderHub)
+		drivermigration.NewSeeder(hub, modules).Run()
 	},
 }
 

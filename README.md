@@ -283,6 +283,168 @@ The following services are typically available in the provider hub:
 
 Services are automatically registered when you add their provider factories to the `getProviders()` function in your `main.go`. The framework handles the initialization and dependency injection automatically.
 
+## Database Management
+
+RAIDARK provides a unified system for database migrations and seeding using the hub provider architecture. Both operations use the same provider system as the API commands for consistency.
+
+### Database Migrations
+
+Database migrations automatically create and update your database schema based on the models defined in your modules.
+
+#### Running Migrations
+
+```bash
+# Run database migrations
+go run main.go dbmigrate
+```
+
+#### How Migrations Work
+
+Migrations extract models from all registered modules using the `GetModel()` method:
+
+```go
+// In your module
+func (u *UsersModule) GetModel() []any {
+    return []any{
+        &model.User{},
+        &model.UserProfile{},
+    }
+}
+```
+
+The migration system:
+1. Collects all models from all modules
+2. Uses GORM's AutoMigrate to create/update database schema
+3. Logs the migration process with structured logging
+
+### Database Seeding
+
+Database seeding populates your database with initial data using the same hub provider system.
+
+#### Running Seeders
+
+```bash
+# Run database seeding
+go run main.go dbmigrate seed
+```
+
+#### How Seeding Works
+
+Seeding extracts seed data from all registered modules using the `GetSeedData()` method:
+
+```go
+// In your module
+func (u *UsersModule) GetSeedData() []any {
+    return []any{
+        []model.User{
+            {
+                Username: "admin",
+                Email:    "admin@example.com",
+                Role:     "admin",
+            },
+            {
+                Username: "user",
+                Email:    "user@example.com", 
+                Role:     "user",
+            },
+        },
+    }
+}
+```
+
+The seeding system:
+1. Collects all seed data from all modules
+2. Uses database transactions for data integrity
+3. Inserts data using GORM's Create method
+4. Provides rollback on errors with detailed logging
+
+#### Default Implementation
+
+All modules inherit default empty implementations from the base `EchoModule`:
+
+```go
+// Base EchoModule provides default implementations
+func (e *EchoModule) GetModel() []any {
+    return []any{}
+}
+
+func (e *EchoModule) GetSeedData() []any {
+    return []any{}
+}
+```
+
+Override these methods in your modules only when you need to provide models or seed data.
+
+#### Example: Complete Module with Models and Seed Data
+
+```go
+package users
+
+import (
+    "time"
+    "github.com/r0x16/Raidark/shared/api/domain"
+    "github.com/r0x16/Raidark/shared/api/driver/modules"
+    "your-project/models"
+)
+
+type UsersModule struct {
+    *modules.EchoModule
+}
+
+var _ domain.ApiModule = &UsersModule{}
+
+func (u *UsersModule) Name() string {
+    return "Users"
+}
+
+func (u *UsersModule) Setup() error {
+    // Your routes here
+    return nil
+}
+
+// Provide models for database migration
+func (u *UsersModule) GetModel() []any {
+    return []any{
+        &models.User{},
+        &models.UserProfile{},
+    }
+}
+
+// Provide seed data for database initialization
+func (u *UsersModule) GetSeedData() []any {
+    return []any{
+        []models.User{
+            {
+                Username:  "admin",
+                Email:     "admin@example.com",
+                Role:      "admin",
+                CreatedAt: time.Now(),
+            },
+        },
+        []models.UserProfile{
+            {
+                UserID:   "admin",
+                FullName: "System Administrator",
+                Bio:      "Default admin user",
+            },
+        },
+    }
+}
+```
+
+### Database Commands Summary
+
+| Command | Description | Usage |
+|---------|-------------|-------|
+| `dbmigrate` | Run database migrations | `go run main.go dbmigrate` |
+| `dbmigrate seed` | Run database seeding | `go run main.go dbmigrate seed` |
+
+Both commands use the hub provider system for:
+- Database connection management
+- Structured logging
+- Error handling and rollback
+- Module-based data extraction
+
 ## Environment Variables
 
 RAIDARK uses the following environment variables for configuration:
@@ -357,17 +519,18 @@ CASDOOR_APPLICATION=your_application_name
 CASDOOR_REDIRECT_URI=http://localhost:8080/callback
 ```
 
-
-
 ## Features
 
 - **Modular API Design**: Organize your endpoints into logical modules
 - **Authentication Ready**: Built-in Casdoor integration for OAuth2 authentication
 - **Database Agnostic**: Support for PostgreSQL and MySQL with GORM
+- **Hub Provider System**: Unified dependency injection for all commands (API, migrations, seeding)
+- **Database Management**: Automated migrations and seeding with module-based data extraction
 - **Security First**: CSRF protection, CORS configuration, and secure defaults
 - **Environment Management**: Automatic `.env` file loading
 - **Provider System**: Flexible dependency injection for services
 - **Logging**: Structured logging with configurable levels
-- **Migration Support**: Database schema management
+- **Migration Support**: Database schema management with hub provider architecture
+- **Seeding Support**: Database population with transaction safety and rollback
 - **Event System**: Publish/subscribe pattern for decoupled communication
 

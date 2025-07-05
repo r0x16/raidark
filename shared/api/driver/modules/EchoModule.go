@@ -60,3 +60,11 @@ func (e *EchoModule) ActionInjection(callback ActionCallback) echo.HandlerFunc {
 		return callback(c, e.Hub)
 	}
 }
+
+func (e *EchoModule) GetModel() []any {
+	return []any{}
+}
+
+func (e *EchoModule) GetSeedData() []any {
+	return []any{}
+}

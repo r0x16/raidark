@@ -9,6 +9,7 @@ import (
 	"os"
 
 	domapi "github.com/r0x16/Raidark/shared/api/domain"
+	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
 	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -45,6 +46,8 @@ func Execute(hub *domprovider.ProviderHub, modules []domapi.ApiModule) {
 	ctx = context.WithValue(ctx, modulesKey, modules)
 	err := RootCmd.ExecuteContext(ctx)
 	if err != nil {
+		log := domprovider.Get[domlogger.LogProvider](hub)
+		log.Critical("Error executing root command", map[string]any{"error": err})
 		os.Exit(1)
 	}
 }
