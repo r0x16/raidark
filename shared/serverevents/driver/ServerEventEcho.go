@@ -1,11 +1,11 @@
-package events
+package driver
 
 import (
 	"net/http"
 	"sync"
 
-	"github.com/r0x16/Raidark/shared/domain/output"
-	"github.com/r0x16/Raidark/shared/events/domain"
+	domapi "github.com/r0x16/Raidark/shared/api/domain"
+	"github.com/r0x16/Raidark/shared/serverevents/domain"
 )
 
 type ServerEventEcho struct {
@@ -25,14 +25,14 @@ func NewServerEventEcho(id string) *ServerEventEcho {
 }
 
 // Subscribe implements events.ServerEventProvider.
-func (se *ServerEventEcho) Subscribe(client domain.EventClient) *output.Error {
+func (se *ServerEventEcho) Subscribe(client domain.EventClient) *domapi.Error {
 	se.m.Lock()
 	defer se.m.Unlock()
 
 	id := client.GetId()
 
 	if _, ok := se.Clients[id]; ok {
-		return &output.Error{
+		return &domapi.Error{
 			Code:    http.StatusInternalServerError,
 			Message: "client already subscribed",
 		}
@@ -43,14 +43,14 @@ func (se *ServerEventEcho) Subscribe(client domain.EventClient) *output.Error {
 }
 
 // Unsubscribe implements events.ServerEventProvider.
-func (se *ServerEventEcho) Unsubscribe(client domain.EventClient) *output.Error {
+func (se *ServerEventEcho) Unsubscribe(client domain.EventClient) *domapi.Error {
 	se.m.Lock()
 	defer se.m.Unlock()
 
 	id := client.GetId()
 
 	if _, ok := se.Clients[id]; !ok {
-		return &output.Error{
+		return &domapi.Error{
 			Code:    http.StatusInternalServerError,
 			Message: "client not subscribed",
 		}
@@ -61,7 +61,7 @@ func (se *ServerEventEcho) Unsubscribe(client domain.EventClient) *output.Error 
 }
 
 // Broadcast implements events.ServerEventProvider.
-func (se *ServerEventEcho) Broadcast(message *domain.EventMessage) *output.Error {
+func (se *ServerEventEcho) Broadcast(message *domain.EventMessage) *domapi.Error {
 	se.m.Lock()
 	defer se.m.Unlock()
 

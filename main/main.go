@@ -34,5 +34,6 @@ func getProviders() []domprovider.ProviderFactory {
 		&driverprovider.DatastoreProviderFactory{},
 		&driverprovider.AuthProviderFactory{},
 		&driverprovider.ApiProviderFactory{},
+		&driverprovider.DomainEventFactory{},
 	}
 }

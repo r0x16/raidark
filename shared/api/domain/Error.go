@@ -1,4 +1,4 @@
-package output
+package domain
 
 type Error struct {
 	Code    int         `json:"code"`

@@ -1,4 +1,4 @@
-package events
+package driver
 
 import (
 	"encoding/json"
@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/r0x16/Raidark/shared/domain/output"
-	"github.com/r0x16/Raidark/shared/events/domain"
+	domapi "github.com/r0x16/Raidark/shared/api/domain"
+	"github.com/r0x16/Raidark/shared/serverevents/domain"
 )
 
 type EventClientEcho struct {
@@ -27,7 +27,7 @@ func NewEventClientEcho(id string, c echo.Context) EventClientEcho {
 	}
 }
 
-func (c EventClientEcho) Setup() *output.Error {
+func (c EventClientEcho) Setup() *domapi.Error {
 	c.context.Response().Header().Set("Access-Control-Allow-Origin", "*")
 	c.context.Response().Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	c.context.Response().Header().Set("Content-Type", "text/event-stream")
@@ -42,13 +42,13 @@ func (c EventClientEcho) GetId() string {
 }
 
 // SendMessage implements domain.EventClient.
-func (c EventClientEcho) SendMessage(message *domain.EventMessage) *output.Error {
+func (c EventClientEcho) SendMessage(message *domain.EventMessage) *domapi.Error {
 	c.eventChannel <- message
 	return nil
 }
 
 // WaitForMessage implements domain.EventClient.
-func (c EventClientEcho) Online() *output.Error {
+func (c EventClientEcho) Online() *domapi.Error {
 	c.ping()
 	for {
 		select {
@@ -72,10 +72,10 @@ func (c EventClientEcho) Close() {
 	close(c.eventChannel)
 }
 
-func (c EventClientEcho) handleEvent(message *domain.EventMessage) *output.Error {
+func (c EventClientEcho) handleEvent(message *domain.EventMessage) *domapi.Error {
 	data, err := json.Marshal(message.Data)
 	if err != nil {
-		return &output.Error{
+		return &domapi.Error{
 			Code:    http.StatusInternalServerError,
 			Message: "Error processing event data",
 			Data:    err,
@@ -86,11 +86,11 @@ func (c EventClientEcho) handleEvent(message *domain.EventMessage) *output.Error
 
 }
 
-func (c EventClientEcho) transportEvent(event string, data string) *output.Error {
+func (c EventClientEcho) transportEvent(event string, data string) *domapi.Error {
 	const format = "event:%s\ndata:%s\n\n"
 	_, err := c.context.Response().Writer.Write([]byte(fmt.Sprintf(format, event, data)))
 	if err != nil {
-		return &output.Error{
+		return &domapi.Error{
 			Code:    http.StatusInternalServerError,
 			Message: "Error sending event",
 			Data:    err,
@@ -101,7 +101,7 @@ func (c EventClientEcho) transportEvent(event string, data string) *output.Error
 	return nil
 }
 
-func (c EventClientEcho) ping() *output.Error {
+func (c EventClientEcho) ping() *domapi.Error {
 	return c.handleEvent(&domain.EventMessage{
 		Event: "ping",
 		Data:  "pong",
