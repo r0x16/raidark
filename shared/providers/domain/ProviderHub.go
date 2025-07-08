@@ -51,3 +51,17 @@ func Get[T any](hub *ProviderHub) T {
 	}
 	return provider.(T)
 }
+
+// Exists checks if a provider of a given type exists in the hub.
+//
+// Parameters:
+//   - hub: The ProviderHub instance to check the provider in
+//   - provider: The provider type to check for
+//
+// Returns:
+//   - True if the provider exists, false otherwise
+func Exists[T any](hub *ProviderHub) bool {
+	t := reflect.TypeOf((*T)(nil))
+	_, ok := hub.providers[t]
+	return ok
+}

@@ -28,7 +28,9 @@ func New(providers []domprovider.ProviderFactory) *Raidark {
 	raidark.loadEnvIfExists()
 	raidark.hub = raidark.initializeProviders(raidark.providers)
 	// Initialize datastore from provider hub
-	raidark.datastore = domprovider.Get[domdatastore.DatabaseProvider](raidark.hub)
+	if domprovider.Exists[domdatastore.DatabaseProvider](raidark.hub) {
+		raidark.datastore = domprovider.Get[domdatastore.DatabaseProvider](raidark.hub)
+	}
 	return raidark
 }
 
@@ -52,7 +54,9 @@ func (r *Raidark) initializeProviders(providers []domprovider.ProviderFactory) *
 }
 
 func (r *Raidark) Run(modules []apidomain.ApiModule) {
-	defer r.datastore.Close()
+	if r.datastore != nil {
+		defer r.datastore.Close()
+	}
 	r.registerModules(modules)
 	cmd.Execute(r.hub, r.modules)
 }
