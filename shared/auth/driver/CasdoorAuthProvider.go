@@ -38,9 +38,12 @@ func (c *CasdoorAuthProvider) Initialize() error {
 		return newCasdoorErrorWithCause("failed to validate configuration", err)
 	}
 
-	// Initialize the Casdoor client
+	// Normalize endpoint by removing trailing slash to prevent double slashes
+	normalizedEndpoint := strings.TrimRight(c.config.Endpoint, "/")
+
+	// Initialize the Casdoor client with normalized endpoint
 	c.client = casdoorsdk.NewClient(
-		c.config.Endpoint,
+		normalizedEndpoint,
 		c.config.ClientId,
 		c.config.ClientSecret,
 		c.config.Certificate,
@@ -58,7 +61,9 @@ func (c *CasdoorAuthProvider) GetAuthURL(state string) string {
 	}
 
 	// Build OAuth authorization URL manually according to Casdoor documentation
-	authURL := fmt.Sprintf("%s/login/oauth/authorize", c.config.Endpoint)
+	// Normalize endpoint to prevent double slashes
+	endpointBase := strings.TrimRight(c.config.Endpoint, "/")
+	authURL := fmt.Sprintf("%s/login/oauth/authorize", endpointBase)
 	params := url.Values{}
 	params.Add("client_id", c.config.ClientId)
 	params.Add("redirect_uri", c.config.RedirectURI)
@@ -79,14 +84,15 @@ func (c *CasdoorAuthProvider) GetToken(code, state string) (*domain.Token, error
 	fmt.Printf("[DEBUG] GetToken called with:\n")
 	fmt.Printf("  - code: %s (length: %d)\n", code, len(code))
 	fmt.Printf("  - state: %s (length: %d)\n", state, len(state))
-	fmt.Printf("  - config.Endpoint: %s\n", c.config.Endpoint)
+	fmt.Printf("  - config.Endpoint (original): %s\n", c.config.Endpoint)
 	fmt.Printf("  - config.ClientId: %s\n", c.config.ClientId)
 	fmt.Printf("  - config.RedirectURI: %s\n", c.config.RedirectURI)
 	fmt.Printf("  - config.OrganizationName: %s\n", c.config.OrganizationName)
 	fmt.Printf("  - config.ApplicationName: %s\n", c.config.ApplicationName)
 
 	// Construct expected token endpoint URL for debugging
-	expectedTokenURL := fmt.Sprintf("%s/login/oauth/access_token", c.config.Endpoint)
+	endpointBase := strings.TrimRight(c.config.Endpoint, "/")
+	expectedTokenURL := fmt.Sprintf("%s/login/oauth/access_token", endpointBase)
 	fmt.Printf("  - expected token endpoint: %s\n", expectedTokenURL)
 
 	// Check if code or state are suspicious
