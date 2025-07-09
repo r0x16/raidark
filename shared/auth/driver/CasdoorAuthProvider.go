@@ -3,6 +3,7 @@ package driver
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/casdoor/casdoor-go-sdk/casdoorsdk"
 	"github.com/r0x16/Raidark/shared/auth/domain"
@@ -74,12 +75,69 @@ func (c *CasdoorAuthProvider) GetToken(code, state string) (*domain.Token, error
 		return nil, newCasdoorError("client not initialized")
 	}
 
-	oauthToken, err := c.client.GetOAuthToken(code, state)
+	// Log detailed debugging information
+	fmt.Printf("[DEBUG] GetToken called with:\n")
+	fmt.Printf("  - code: %s (length: %d)\n", code, len(code))
+	fmt.Printf("  - state: %s (length: %d)\n", state, len(state))
+	fmt.Printf("  - config.Endpoint: %s\n", c.config.Endpoint)
+	fmt.Printf("  - config.ClientId: %s\n", c.config.ClientId)
+	fmt.Printf("  - config.RedirectURI: %s\n", c.config.RedirectURI)
+	fmt.Printf("  - config.OrganizationName: %s\n", c.config.OrganizationName)
+	fmt.Printf("  - config.ApplicationName: %s\n", c.config.ApplicationName)
+
+	// Construct expected token endpoint URL for debugging
+	expectedTokenURL := fmt.Sprintf("%s/login/oauth/access_token", c.config.Endpoint)
+	fmt.Printf("  - expected token endpoint: %s\n", expectedTokenURL)
+
+	// Check if code or state are suspicious
+	if strings.Contains(code, "<") || strings.Contains(state, "<") {
+		fmt.Printf("[WARNING] Code or state contains HTML characters!\n")
+		fmt.Printf("  - code contains '<': %v\n", strings.Contains(code, "<"))
+		fmt.Printf("  - state contains '<': %v\n", strings.Contains(state, "<"))
+	}
+
+	// Quick connectivity test
+	fmt.Printf("[DEBUG] Testing connectivity to Casdoor server...\n")
+	err := c.testConnectivity()
 	if err != nil {
+		fmt.Printf("[WARNING] Connectivity test failed: %v\n", err)
+	} else {
+		fmt.Printf("[DEBUG] Connectivity test passed\n")
+	}
+
+	oauthToken, err := c.client.GetOAuthToken(code, state)
+
+	fmt.Printf("[DEBUG] GetOAuthToken result:\n")
+	fmt.Printf("  - oauthToken: %+v\n", oauthToken)
+	fmt.Printf("  - err: %v\n", err)
+
+	if err != nil {
+		fmt.Printf("[ERROR] GetOAuthToken failed: %v\n", err)
+		// Try to extract more details from the error
+		if strings.Contains(err.Error(), "invalid character '<'") {
+			fmt.Printf("[ERROR] Server returned HTML instead of JSON - possible causes:\n")
+			fmt.Printf("  1. Wrong endpoint URL\n")
+			fmt.Printf("  2. Invalid client credentials\n")
+			fmt.Printf("  3. Server error page\n")
+			fmt.Printf("  4. Wrong HTTP method or parameters\n")
+			fmt.Printf("  5. Check if %s is accessible\n", expectedTokenURL)
+		}
 		return nil, newCasdoorErrorWithCause("failed to get OAuth token", err)
 	}
 
 	return c.convertOAuth2TokenToDomainToken(oauthToken), nil
+}
+
+// testConnectivity performs a simple connectivity test to Casdoor server
+func (c *CasdoorAuthProvider) testConnectivity() error {
+	if c.client == nil {
+		return fmt.Errorf("client not initialized")
+	}
+
+	// Try a simple API call to test connectivity
+	// Note: This might fail with auth error but should not fail with connectivity/HTML issues
+	_, err := c.client.GetUsers()
+	return err
 }
 
 // RefreshToken refreshes OAuth token using refresh token
