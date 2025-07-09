@@ -159,15 +159,6 @@ func (ec *ExchangeController) parseRequest(c echo.Context) (*domain.ExchangeRequ
 		req.State = c.QueryParam("state")
 	}
 
-	// Log what we got for debugging
-	ec.Log.Info("Parsed request", map[string]any{
-		"final_req":    req,
-		"code_length":  len(req.Code),
-		"state_length": len(req.State),
-		"query_code":   c.QueryParam("code"),
-		"query_state":  c.QueryParam("state"),
-	})
-
 	// Validate required parameters
 	if req.Code == "" || req.State == "" {
 		ec.Log.Warning("Missing required OAuth2 parameters", map[string]any{
@@ -247,15 +238,6 @@ func (ec *ExchangeController) exchangeCodeForTokens(authService *service.AuthExc
 		ec.Log.Error("State parameter is empty in exchangeCodeForTokens", nil)
 		return nil, nil, nil, fmt.Errorf("state parameter is empty")
 	}
-
-	// Log parameters for debugging
-	ec.Log.Debug("Calling authService.ExchangeCodeForTokens", map[string]any{
-		"code_length":  len(req.Code),
-		"state_length": len(req.State),
-		"user_agent":   userAgent,
-		"ip_address":   ipAddress,
-		"service_nil":  authService == nil,
-	})
 
 	session, token, claims, err := authService.ExchangeCodeForTokens(req.Code, req.State, userAgent, ipAddress)
 	if err != nil {
