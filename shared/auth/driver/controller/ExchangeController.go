@@ -25,10 +25,31 @@ type ExchangeController struct {
 
 // ExchangeAction creates an ExchangeController instance and delegates to the Exchange method
 func ExchangeAction(c echo.Context, hub *domprovider.ProviderHub) error {
+	// Validate that AuthProvider exists in the hub
+	if !domprovider.Exists[domain.AuthProvider](hub) {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Authentication provider not configured",
+		})
+	}
+
+	// Validate that required providers exist
+	if !domprovider.Exists[domdatastore.DatabaseProvider](hub) {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Database provider not configured",
+		})
+	}
+
+	if !domprovider.Exists[domlogger.LogProvider](hub) {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Logger provider not configured",
+		})
+	}
+
 	var events domevents.DomainEventsProvider = nil
 	if domprovider.Exists[domevents.DomainEventsProvider](hub) {
 		events = domprovider.Get[domevents.DomainEventsProvider](hub)
 	}
+
 	controller := &ExchangeController{
 		Datastore: domprovider.Get[domdatastore.DatabaseProvider](hub),
 		Auth:      domprovider.Get[domain.AuthProvider](hub),
@@ -53,6 +74,12 @@ func (ec *ExchangeController) Exchange(c echo.Context) error {
 
 	// Initialize services
 	authService := ec.initializeAuthService(ec.Datastore)
+	if authService == nil {
+		ec.Log.Error("Failed to initialize authentication service", nil)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Authentication service unavailable",
+		})
+	}
 
 	// Exchange code for tokens and create session
 	session, token, claims, err := ec.exchangeCodeForTokens(authService, req, userAgent, ipAddress)
@@ -104,6 +131,12 @@ func (ec *ExchangeController) extractClientInfo(c echo.Context) (string, string)
 
 // initializeAuthService creates and returns an instance of the authentication service
 func (ec *ExchangeController) initializeAuthService(dbProvider domdatastore.DatabaseProvider) *service.AuthExchangeService {
+	// Additional safety check - this should not happen if ExchangeAction validation works correctly
+	if ec.Auth == nil {
+		ec.Log.Error("AuthProvider is nil in ExchangeController", nil)
+		return nil
+	}
+
 	sessionRepo := repositories.NewGormSessionRepository(dbProvider.GetDataStore().Exec)
 	return service.NewAuthExchangeService(sessionRepo, ec.Auth, ec.Events)
 }
