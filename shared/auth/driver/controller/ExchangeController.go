@@ -64,6 +64,11 @@ func ExchangeAction(c echo.Context, hub *domprovider.ProviderHub) error {
 // It validates the request, exchanges the code for tokens, creates a session,
 // and returns the access token with user information
 func (ec *ExchangeController) Exchange(c echo.Context) error {
+	ec.Log.Info("Exchange request received", map[string]any{
+		"code":  c.QueryParam("code"),
+		"state": c.QueryParam("state"), // TODO: remove this
+	})
+
 	// Parse and validate request
 	req, err := ec.parseRequest(c)
 	if err != nil {
@@ -138,21 +143,39 @@ func (ec *ExchangeController) Exchange(c echo.Context) error {
 // parseRequest parses and validates the exchange request from the HTTP context
 func (ec *ExchangeController) parseRequest(c echo.Context) (*domain.ExchangeRequest, error) {
 	var req domain.ExchangeRequest
+
+	// First try to bind from JSON/form data
 	if err := c.Bind(&req); err != nil {
-		ec.Log.Warning("Invalid exchange request", map[string]any{
+		ec.Log.Warning("Failed to bind from JSON/form, trying query params", map[string]any{
 			"error": err.Error(),
-		})
-		return nil, c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Invalid request parameters",
 		})
 	}
 
+	// Extract from query parameters (OAuth2 standard) if not already set
+	if req.Code == "" {
+		req.Code = c.QueryParam("code")
+	}
+	if req.State == "" {
+		req.State = c.QueryParam("state")
+	}
+
+	// Log what we got for debugging
 	ec.Log.Info("Parsed request", map[string]any{
-		"req": req,
+		"final_req":    req,
+		"code_length":  len(req.Code),
+		"state_length": len(req.State),
+		"query_code":   c.QueryParam("code"),
+		"query_state":  c.QueryParam("state"),
 	})
 
 	// Validate required parameters
 	if req.Code == "" || req.State == "" {
+		ec.Log.Warning("Missing required OAuth2 parameters", map[string]any{
+			"code_empty":  req.Code == "",
+			"state_empty": req.State == "",
+			"query_code":  c.QueryParam("code"),
+			"query_state": c.QueryParam("state"),
+		})
 		return nil, c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "Missing required parameters: code and state",
 		})
