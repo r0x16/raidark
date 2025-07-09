@@ -59,6 +59,20 @@ func (p *InMemoryDomainEventsProvider) Collect() {
 }
 
 func (p *InMemoryDomainEventsProvider) Publish(event domain.DomainEvent) error {
+	p.dispatchSync(event)
+
+	select {
+	case p.queue <- event:
+	default:
+		go func(e domain.DomainEvent) {
+			p.LogProvider.Warning("queue is full waiting for a slot", map[string]any{"event": e})
+			p.queue <- e
+		}(event)
+	}
+	return nil
+}
+
+func (p *InMemoryDomainEventsProvider) dispatchSync(event domain.DomainEvent) {
 	p.mu.RLock()
 	handlers, ok := p.syncSubscribers[event.Name()]
 	p.mu.RUnlock()
@@ -74,16 +88,6 @@ func (p *InMemoryDomainEventsProvider) Publish(event domain.DomainEvent) error {
 			}
 		}
 	}
-
-	select {
-	case p.queue <- event:
-	default:
-		go func(e domain.DomainEvent) {
-			p.LogProvider.Warning("queue is full waiting for a slot", map[string]any{"event": e})
-			p.queue <- e
-		}(event)
-	}
-	return nil
 }
 
 func (p *InMemoryDomainEventsProvider) Subscribe(handler domain.EventListener) error {
@@ -91,7 +95,7 @@ func (p *InMemoryDomainEventsProvider) Subscribe(handler domain.EventListener) e
 	defer p.mu.Unlock()
 
 	eventName := handler.EventName()
-	p.LogProvider.Debug("subscribing to event", map[string]any{"event": eventName, "handler": handler})
+	p.LogProvider.Info("subscribing to event", map[string]any{"event": eventName, "handler": handler})
 
 	if handler.IsAsync() {
 		p.subscribers[eventName] = append(p.subscribers[eventName], handler)

@@ -5,19 +5,28 @@ import (
 	"time"
 
 	"github.com/r0x16/Raidark/shared/auth/domain"
+	"github.com/r0x16/Raidark/shared/auth/domain/event"
 	"github.com/r0x16/Raidark/shared/auth/domain/model"
 	"github.com/r0x16/Raidark/shared/auth/domain/repositories"
+	domevents "github.com/r0x16/Raidark/shared/events/domain"
 )
 
 // AuthExchangeService handles code exchange for tokens
 type AuthExchangeService struct {
 	*AuthService
+	events domevents.DomainEventsProvider
 }
 
 // NewAuthExchangeService creates a new exchange service
-func NewAuthExchangeService(sessionRepo repositories.SessionRepository, authProvider domain.AuthProvider) *AuthExchangeService {
+func NewAuthExchangeService(
+	sessionRepo repositories.SessionRepository,
+	authProvider domain.AuthProvider,
+	events domevents.DomainEventsProvider,
+) *AuthExchangeService {
+	authService := NewAuthService(sessionRepo, authProvider)
 	return &AuthExchangeService{
-		AuthService: NewAuthService(sessionRepo, authProvider),
+		AuthService: authService,
+		events:      events,
 	}
 }
 
@@ -59,5 +68,11 @@ func (s *AuthExchangeService) ExchangeCodeForTokens(code, state, userAgent, ipAd
 		return nil, nil, nil, fmt.Errorf("failed to create session: %w", err)
 	}
 
+	// Publish event
+	if s.events != nil {
+		s.events.Publish(&event.SessionWasCreated{
+			Session: session,
+		})
+	}
 	return session, token, claims, nil
 }

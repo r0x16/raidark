@@ -8,6 +8,7 @@ import (
 	"github.com/r0x16/Raidark/shared/auth/driver/repositories"
 	"github.com/r0x16/Raidark/shared/auth/service"
 	domdatastore "github.com/r0x16/Raidark/shared/datastore/domain"
+	domevents "github.com/r0x16/Raidark/shared/events/domain"
 	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
 	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
 )
@@ -17,6 +18,7 @@ type LogoutController struct {
 	Datastore domdatastore.DatabaseProvider
 	Auth      domain.AuthProvider
 	Log       domlogger.LogProvider
+	Events    domevents.DomainEventsProvider
 }
 
 // LogoutAction creates a LogoutController instance and delegates to the Logout method
@@ -25,6 +27,7 @@ func LogoutAction(c echo.Context, hub *domprovider.ProviderHub) error {
 		Datastore: domprovider.Get[domdatastore.DatabaseProvider](hub),
 		Auth:      domprovider.Get[domain.AuthProvider](hub),
 		Log:       domprovider.Get[domlogger.LogProvider](hub),
+		Events:    domprovider.Get[domevents.DomainEventsProvider](hub),
 	}
 	return controller.Logout(c)
 }
@@ -107,7 +110,7 @@ func (lc *LogoutController) handleNoSession(c echo.Context, err error) error {
 // initializeAuthService creates and returns an instance of the logout service
 func (lc *LogoutController) initializeAuthService(dbProvider domdatastore.DatabaseProvider) *service.AuthLogoutService {
 	sessionRepo := repositories.NewGormSessionRepository(dbProvider.GetDataStore().Exec)
-	return service.NewAuthLogoutService(sessionRepo, lc.Auth)
+	return service.NewAuthLogoutService(sessionRepo, lc.Auth, lc.Events)
 }
 
 // invalidateSession attempts to invalidate the session in the database

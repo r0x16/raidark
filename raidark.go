@@ -84,7 +84,7 @@ func (r *Raidark) Run(modules []apidomain.ApiModule) {
 		defer r.datastore.Close()
 	}
 	r.registerModules(modules)
-	r.initializeEventListeners(modules)
+	r.initializeEventListeners(r.modules)
 	cmd.Execute(r.hub, r.modules)
 }
 

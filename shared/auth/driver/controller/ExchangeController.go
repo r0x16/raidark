@@ -10,6 +10,7 @@ import (
 	"github.com/r0x16/Raidark/shared/auth/driver/repositories"
 	"github.com/r0x16/Raidark/shared/auth/service"
 	domdatastore "github.com/r0x16/Raidark/shared/datastore/domain"
+	domevents "github.com/r0x16/Raidark/shared/events/domain"
 	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
 	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
 )
@@ -19,14 +20,20 @@ type ExchangeController struct {
 	Datastore domdatastore.DatabaseProvider
 	Auth      domain.AuthProvider
 	Log       domlogger.LogProvider
+	Events    domevents.DomainEventsProvider
 }
 
 // ExchangeAction creates an ExchangeController instance and delegates to the Exchange method
 func ExchangeAction(c echo.Context, hub *domprovider.ProviderHub) error {
+	var events domevents.DomainEventsProvider = nil
+	if domprovider.Exists[domevents.DomainEventsProvider](hub) {
+		events = domprovider.Get[domevents.DomainEventsProvider](hub)
+	}
 	controller := &ExchangeController{
 		Datastore: domprovider.Get[domdatastore.DatabaseProvider](hub),
 		Auth:      domprovider.Get[domain.AuthProvider](hub),
 		Log:       domprovider.Get[domlogger.LogProvider](hub),
+		Events:    events,
 	}
 	return controller.Exchange(c)
 }
@@ -98,7 +105,7 @@ func (ec *ExchangeController) extractClientInfo(c echo.Context) (string, string)
 // initializeAuthService creates and returns an instance of the authentication service
 func (ec *ExchangeController) initializeAuthService(dbProvider domdatastore.DatabaseProvider) *service.AuthExchangeService {
 	sessionRepo := repositories.NewGormSessionRepository(dbProvider.GetDataStore().Exec)
-	return service.NewAuthExchangeService(sessionRepo, ec.Auth)
+	return service.NewAuthExchangeService(sessionRepo, ec.Auth, ec.Events)
 }
 
 // exchangeCodeForTokens performs the OAuth2 code exchange and returns session, token, and claims
