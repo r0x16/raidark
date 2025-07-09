@@ -147,16 +147,16 @@ func (ec *ExchangeController) parseRequest(c echo.Context) (*domain.ExchangeRequ
 		})
 	}
 
+	ec.Log.Debug("Parsed request", map[string]any{
+		"req": req,
+	})
+
 	// Validate required parameters
 	if req.Code == "" || req.State == "" {
 		return nil, c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "Missing required parameters: code and state",
 		})
 	}
-
-	ec.Log.Debug("Parsed request", map[string]any{
-		"req": req,
-	})
 
 	return &req, nil
 }
