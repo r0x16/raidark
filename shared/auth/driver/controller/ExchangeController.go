@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -69,8 +70,27 @@ func (ec *ExchangeController) Exchange(c echo.Context) error {
 		return err
 	}
 
+	// Additional validation - req should not be nil after parseRequest
+	if req == nil {
+		ec.Log.Error("Request is nil after parseRequest", nil)
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Invalid request",
+		})
+	}
+
 	// Extract client information
 	userAgent, ipAddress := ec.extractClientInfo(c)
+
+	// Validate client information
+	if userAgent == "" {
+		ec.Log.Warning("User agent is empty", nil)
+		userAgent = "unknown"
+	}
+
+	if ipAddress == "" {
+		ec.Log.Warning("IP address is empty", nil)
+		ipAddress = "unknown"
+	}
 
 	// Initialize services
 	authService := ec.initializeAuthService(ec.Datastore)
@@ -84,8 +104,23 @@ func (ec *ExchangeController) Exchange(c echo.Context) error {
 	// Exchange code for tokens and create session
 	session, token, claims, err := ec.exchangeCodeForTokens(authService, req, userAgent, ipAddress)
 	if err != nil {
+		ec.Log.Error("exchangeCodeForTokens failed", map[string]any{
+			"error": err.Error(),
+		})
 		return c.JSON(http.StatusUnauthorized, map[string]string{
 			"error": "Authentication failed",
+		})
+	}
+
+	// Validate returned values
+	if session == nil || token == nil || claims == nil {
+		ec.Log.Error("exchangeCodeForTokens returned nil values", map[string]any{
+			"session_nil": session == nil,
+			"token_nil":   token == nil,
+			"claims_nil":  claims == nil,
+		})
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Authentication processing failed",
 		})
 	}
 
@@ -137,12 +172,64 @@ func (ec *ExchangeController) initializeAuthService(dbProvider domdatastore.Data
 		return nil
 	}
 
+	// Validate database provider
+	if dbProvider == nil {
+		ec.Log.Error("DatabaseProvider is nil in initializeAuthService", nil)
+		return nil
+	}
+
+	// Validate database provider methods
+	if dbProvider.GetDataStore() == nil {
+		ec.Log.Error("DatabaseProvider.GetDataStore() returned nil", nil)
+		return nil
+	}
+
+	if dbProvider.GetDataStore().Exec == nil {
+		ec.Log.Error("DatabaseProvider.GetDataStore().Exec is nil", nil)
+		return nil
+	}
+
 	sessionRepo := repositories.NewGormSessionRepository(dbProvider.GetDataStore().Exec)
+	if sessionRepo == nil {
+		ec.Log.Error("Failed to create session repository", nil)
+		return nil
+	}
+
 	return service.NewAuthExchangeService(sessionRepo, ec.Auth, ec.Events)
 }
 
 // exchangeCodeForTokens performs the OAuth2 code exchange and returns session, token, and claims
 func (ec *ExchangeController) exchangeCodeForTokens(authService *service.AuthExchangeService, req *domain.ExchangeRequest, userAgent, ipAddress string) (*model.AuthSession, *domain.Token, *domain.Claims, error) {
+	// Validate all parameters to prevent nil pointer dereference
+	if authService == nil {
+		ec.Log.Error("AuthService is nil in exchangeCodeForTokens", nil)
+		return nil, nil, nil, fmt.Errorf("authentication service is nil")
+	}
+
+	if req == nil {
+		ec.Log.Error("ExchangeRequest is nil in exchangeCodeForTokens", nil)
+		return nil, nil, nil, fmt.Errorf("exchange request is nil")
+	}
+
+	if req.Code == "" {
+		ec.Log.Error("Authorization code is empty in exchangeCodeForTokens", nil)
+		return nil, nil, nil, fmt.Errorf("authorization code is empty")
+	}
+
+	if req.State == "" {
+		ec.Log.Error("State parameter is empty in exchangeCodeForTokens", nil)
+		return nil, nil, nil, fmt.Errorf("state parameter is empty")
+	}
+
+	// Log parameters for debugging
+	ec.Log.Debug("Calling authService.ExchangeCodeForTokens", map[string]any{
+		"code_length":  len(req.Code),
+		"state_length": len(req.State),
+		"user_agent":   userAgent,
+		"ip_address":   ipAddress,
+		"service_nil":  authService == nil,
+	})
+
 	session, token, claims, err := authService.ExchangeCodeForTokens(req.Code, req.State, userAgent, ipAddress)
 	if err != nil {
 		ec.Log.Error("Failed to exchange code for tokens", map[string]any{
@@ -157,6 +244,16 @@ func (ec *ExchangeController) exchangeCodeForTokens(authService *service.AuthExc
 
 // setSessionCookie sets the secure session cookie in the HTTP response
 func (ec *ExchangeController) setSessionCookie(c echo.Context, session *model.AuthSession) {
+	if session == nil {
+		ec.Log.Error("Session is nil in setSessionCookie", nil)
+		return
+	}
+
+	if session.SessionID == "" {
+		ec.Log.Error("SessionID is empty in setSessionCookie", nil)
+		return
+	}
+
 	cookie := &http.Cookie{
 		Name:     "app_session",
 		Value:    session.SessionID,
@@ -171,6 +268,25 @@ func (ec *ExchangeController) setSessionCookie(c echo.Context, session *model.Au
 
 // buildResponse constructs the exchange response with token and user information
 func (ec *ExchangeController) buildResponse(token *domain.Token, claims *domain.Claims) domain.ExchangeResponse {
+	// Validate parameters
+	if token == nil {
+		ec.Log.Error("Token is nil in buildResponse", nil)
+		return domain.ExchangeResponse{
+			AccessToken: "",
+			TokenType:   "Bearer",
+			ExpiresIn:   0,
+		}
+	}
+
+	if claims == nil {
+		ec.Log.Error("Claims is nil in buildResponse", nil)
+		return domain.ExchangeResponse{
+			AccessToken: token.AccessToken,
+			TokenType:   "Bearer",
+			ExpiresIn:   0,
+		}
+	}
+
 	// Calculate token expiry
 	expiresIn := int64(0)
 	if !token.Expiry.IsZero() {
@@ -194,6 +310,14 @@ func (ec *ExchangeController) buildResponse(token *domain.Token, claims *domain.
 
 // logSuccessfulExchange logs the successful token exchange operation
 func (ec *ExchangeController) logSuccessfulExchange(claims *domain.Claims, session *model.AuthSession) {
+	if claims == nil || session == nil {
+		ec.Log.Error("Cannot log successful exchange: claims or session is nil", map[string]any{
+			"claims_nil":  claims == nil,
+			"session_nil": session == nil,
+		})
+		return
+	}
+
 	ec.Log.Info("Token exchange successful", map[string]any{
 		"user_id":    claims.Subject,
 		"username":   claims.Username,
