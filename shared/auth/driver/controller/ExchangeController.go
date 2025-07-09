@@ -154,6 +154,10 @@ func (ec *ExchangeController) parseRequest(c echo.Context) (*domain.ExchangeRequ
 		})
 	}
 
+	ec.Log.Debug("Parsed request", map[string]any{
+		"req": req,
+	})
+
 	return &req, nil
 }
 
