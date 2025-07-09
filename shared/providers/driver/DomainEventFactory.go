@@ -29,6 +29,7 @@ func (f *DomainEventFactory) Register(hub *domain.ProviderHub) error {
 		return err
 	}
 	domain.Register(hub, provider)
+	provider.Collect()
 	return nil
 }
 

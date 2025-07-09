@@ -28,3 +28,4 @@ donde YYMMDDHHmm es la fecha y horas en que se creó el branch, obten esta fecha
 11. Ejecuta el siguiente comando para solucionar problemas con abrir less para los comandos git:
 git config core.pager cat
 12. ESTA REGLA ES MUY IMPORTANTE. Cuando tengas que hacer merge a main, no seas tan verboso en explicar lo que estás haciendo, simplemente haz todo en un comando que haga todo y confirma que quedó bien y listo. De esta misma manera, no expliques tanto el proceso de commit, simplemente ejecuta los comandos y al finalizar todo haz un resumen del commit como parte del mensaje de salida.
+13. Siempre que te pida hacer commit, si no especifico de qué, hazlo de todos los cambios que se hayan realizado, para ellos verificalos con git status.

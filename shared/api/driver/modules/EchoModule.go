@@ -6,6 +6,7 @@ import (
 	domapi "github.com/r0x16/Raidark/shared/api/domain"
 	driverapi "github.com/r0x16/Raidark/shared/api/driver"
 	domauth "github.com/r0x16/Raidark/shared/auth/domain"
+	domevents "github.com/r0x16/Raidark/shared/events/domain"
 	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
 	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
 )
@@ -61,10 +62,18 @@ func (e *EchoModule) ActionInjection(callback ActionCallback) echo.HandlerFunc {
 	}
 }
 
+func (e *EchoModule) Setup() error {
+	return nil
+}
+
 func (e *EchoModule) GetModel() []any {
 	return []any{}
 }
 
 func (e *EchoModule) GetSeedData() []any {
 	return []any{}
+}
+
+func (e *EchoModule) GetEventListeners() []domevents.EventListener {
+	return []domevents.EventListener{}
 }

@@ -10,14 +10,16 @@ import (
 )
 
 type InMemoryDomainEventsProvider struct {
-	queue       chan domain.DomainEvent
-	subscribers map[string][]domain.EventHandler
-	mu          sync.RWMutex
-	wg          sync.WaitGroup
-	ctx         context.Context
-	cancel      context.CancelFunc
-	workers     int
-	LogProvider domlogger.LogProvider
+	queue           chan domain.DomainEvent
+	subscribers     map[string][]domain.EventListener
+	syncSubscribers map[string][]domain.EventListener
+	mu              sync.RWMutex
+	wg              sync.WaitGroup
+	ctx             context.Context
+	cancel          context.CancelFunc
+	workers         int
+	hub             *domprovider.ProviderHub
+	LogProvider     domlogger.LogProvider
 }
 
 var _ domain.DomainEventsProvider = &InMemoryDomainEventsProvider{}
@@ -25,14 +27,16 @@ var _ domain.DomainEventsProvider = &InMemoryDomainEventsProvider{}
 func NewInMemoryDomainEventsProvider(bufferSize int, workers int, hub *domprovider.ProviderHub) *InMemoryDomainEventsProvider {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &InMemoryDomainEventsProvider{
-		queue:       make(chan domain.DomainEvent, bufferSize),
-		subscribers: make(map[string][]domain.EventHandler),
-		mu:          sync.RWMutex{},
-		wg:          sync.WaitGroup{},
-		ctx:         ctx,
-		cancel:      cancel,
-		workers:     workers,
-		LogProvider: domprovider.Get[domlogger.LogProvider](hub),
+		queue:           make(chan domain.DomainEvent, bufferSize),
+		subscribers:     make(map[string][]domain.EventListener),
+		syncSubscribers: make(map[string][]domain.EventListener),
+		mu:              sync.RWMutex{},
+		wg:              sync.WaitGroup{},
+		ctx:             ctx,
+		cancel:          cancel,
+		workers:         workers,
+		hub:             hub,
+		LogProvider:     domprovider.Get[domlogger.LogProvider](hub),
 	}
 }
 
@@ -55,6 +59,22 @@ func (p *InMemoryDomainEventsProvider) Collect() {
 }
 
 func (p *InMemoryDomainEventsProvider) Publish(event domain.DomainEvent) error {
+	p.mu.RLock()
+	handlers, ok := p.syncSubscribers[event.Name()]
+	p.mu.RUnlock()
+	if ok {
+		for _, handler := range handlers {
+			err := handler.Handle(context.Background(), event, p.hub)
+			if err != nil {
+				p.LogProvider.Error("error dispatching event for handler", map[string]any{
+					"event":   event,
+					"handler": handler,
+					"error":   err,
+				})
+			}
+		}
+	}
+
 	select {
 	case p.queue <- event:
 	default:
@@ -66,10 +86,19 @@ func (p *InMemoryDomainEventsProvider) Publish(event domain.DomainEvent) error {
 	return nil
 }
 
-func (p *InMemoryDomainEventsProvider) Subscribe(eventName string, handler domain.EventHandler) error {
+func (p *InMemoryDomainEventsProvider) Subscribe(handler domain.EventListener) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	p.subscribers[eventName] = append(p.subscribers[eventName], handler)
+
+	eventName := handler.EventName()
+	p.LogProvider.Debug("subscribing to event", map[string]any{"event": eventName, "handler": handler})
+
+	if handler.IsAsync() {
+		p.subscribers[eventName] = append(p.subscribers[eventName], handler)
+		return nil
+	}
+
+	p.syncSubscribers[eventName] = append(p.syncSubscribers[eventName], handler)
 	return nil
 }
 
@@ -82,8 +111,8 @@ func (p *InMemoryDomainEventsProvider) Dispatch(event domain.DomainEvent) error 
 	}
 
 	for _, handler := range handlers {
-		go func(h domain.EventHandler) {
-			err := h(context.Background(), event)
+		go func(h domain.EventListener) {
+			err := h.Handle(context.Background(), event, p.hub)
 			if err != nil {
 				p.LogProvider.Error("error dispatching event for handler", map[string]any{
 					"event":   event,
