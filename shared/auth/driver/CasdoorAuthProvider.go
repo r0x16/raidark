@@ -3,6 +3,7 @@ package driver
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/casdoor/casdoor-go-sdk/casdoorsdk"
 	"github.com/r0x16/Raidark/shared/auth/domain"
@@ -37,9 +38,12 @@ func (c *CasdoorAuthProvider) Initialize() error {
 		return newCasdoorErrorWithCause("failed to validate configuration", err)
 	}
 
-	// Initialize the Casdoor client
+	// Normalize endpoint by removing trailing slash to prevent double slashes
+	normalizedEndpoint := strings.TrimRight(c.config.Endpoint, "/")
+
+	// Initialize the Casdoor client with normalized endpoint
 	c.client = casdoorsdk.NewClient(
-		c.config.Endpoint,
+		normalizedEndpoint,
 		c.config.ClientId,
 		c.config.ClientSecret,
 		c.config.Certificate,
@@ -57,7 +61,9 @@ func (c *CasdoorAuthProvider) GetAuthURL(state string) string {
 	}
 
 	// Build OAuth authorization URL manually according to Casdoor documentation
-	authURL := fmt.Sprintf("%s/login/oauth/authorize", c.config.Endpoint)
+	// Normalize endpoint to prevent double slashes
+	endpointBase := strings.TrimRight(c.config.Endpoint, "/")
+	authURL := fmt.Sprintf("%s/login/oauth/authorize", endpointBase)
 	params := url.Values{}
 	params.Add("client_id", c.config.ClientId)
 	params.Add("redirect_uri", c.config.RedirectURI)
