@@ -13,6 +13,9 @@ import (
  * Represents a mysql database provider connector using gorm
  */
 type GormMysqlDatabaseProvider struct {
+	db *gorm.DB
+
+	// Deprecated: Use GetTransaction() instead
 	Datastore *domain.DataStore
 }
 
@@ -37,6 +40,7 @@ func (g *GormMysqlDatabaseProvider) Connect() error {
 		return err
 	}
 
+	g.db = connection
 	g.Datastore = domain.NewDataStore(connection)
 	return err
 }
@@ -56,6 +60,11 @@ func (g *GormMysqlDatabaseProvider) Close() error {
 	return nil
 }
 
+// Deprecated: Use GetTransaction() instead
 func (g *GormMysqlDatabaseProvider) GetDataStore() *domain.DataStore {
 	return g.Datastore
+}
+
+func (g *GormMysqlDatabaseProvider) GetTransaction() domain.Transaction {
+	return NewGormTransaction(g.db)
 }

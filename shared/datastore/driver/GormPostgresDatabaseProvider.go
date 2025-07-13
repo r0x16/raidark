@@ -13,6 +13,9 @@ import (
  * Represents a postgres database provider connector using gorm
  */
 type GormPostgresDatabaseProvider struct {
+	db *gorm.DB
+
+	// Deprecated: Use GetTransaction() instead
 	Datastore *domain.DataStore
 }
 
@@ -37,6 +40,7 @@ func (g *GormPostgresDatabaseProvider) Connect() error {
 		return err
 	}
 
+	g.db = connection
 	g.Datastore = domain.NewDataStore(connection)
 	return nil
 }
@@ -56,6 +60,11 @@ func (g *GormPostgresDatabaseProvider) Close() error {
 	return nil
 }
 
+// Deprecated: Use GetTransaction() instead
 func (g *GormPostgresDatabaseProvider) GetDataStore() *domain.DataStore {
 	return g.Datastore
+}
+
+func (g *GormPostgresDatabaseProvider) GetTransaction() domain.Transaction {
+	return NewGormTransaction(g.db)
 }
