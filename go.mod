@@ -1,6 +1,6 @@
 module github.com/r0x16/Raidark
 
-go 1.23.2
+go 1.24.0
 
 require (
 	github.com/casdoor/casdoor-go-sdk v1.7.0
