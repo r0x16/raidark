@@ -35,3 +35,6 @@ Thumbs.db
 .env
 
 Raidark
+
+# Codex generated files
+AGENTS.md
