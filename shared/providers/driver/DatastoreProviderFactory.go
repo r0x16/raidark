@@ -20,15 +20,16 @@ func (f *DatastoreProviderFactory) Init(hub *domain.ProviderHub) {
 /*
 * Register the datastore provider to the provider hub
 
-* Supported databases: (default: postgres)
+* Supported databases: (default: sqlite)
 * - Postgres
 * - MySQL
+* - SQLite
 
 * Supported execution engines: (default: gorm)
 * - Gorm
  */
 func (f *DatastoreProviderFactory) Register(hub *domain.ProviderHub) error {
-	dbtype := f.env.GetString("DATASTORE_TYPE", "postgres")
+	dbtype := f.env.GetString("DATASTORE_TYPE", "sqlite")
 	provider, err := f.getProvider(dbtype)
 
 	if err != nil {
@@ -51,6 +52,8 @@ func (f *DatastoreProviderFactory) getProvider(dbtype string) (domdatastore.Data
 		return f.providesPostgres()
 	case "mysql":
 		return f.providesMysql()
+	case "sqlite":
+		return f.providesSqlite()
 	}
 	return nil, errors.New("invalid database type: " + dbtype)
 }
@@ -61,7 +64,7 @@ func (f *DatastoreProviderFactory) getProvider(dbtype string) (domdatastore.Data
 	Get the postgres provider
 */
 func (f *DatastoreProviderFactory) providesPostgres() (domdatastore.DatabaseProvider, error) {
-	connection := &driverdatastore.GormPostgresDatabaseProvider{}
+	connection := driverdatastore.NewGormPostgresDatabaseProvider(f.env)
 	err := connection.Connect()
 
 	if err != nil {
@@ -77,7 +80,23 @@ func (f *DatastoreProviderFactory) providesPostgres() (domdatastore.DatabaseProv
 	Get the mysql provider
 */
 func (f *DatastoreProviderFactory) providesMysql() (domdatastore.DatabaseProvider, error) {
-	connection := &driverdatastore.GormMysqlDatabaseProvider{}
+	connection := driverdatastore.NewGormMysqlDatabaseProvider(f.env)
+	err := connection.Connect()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return connection, nil
+}
+
+/*
+*
+
+	Get the sqlite provider
+*/
+func (f *DatastoreProviderFactory) providesSqlite() (domdatastore.DatabaseProvider, error) {
+	connection := driverdatastore.NewGormSqliteDatabaseProvider(f.env)
 	err := connection.Connect()
 
 	if err != nil {
