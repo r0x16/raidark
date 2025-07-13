@@ -23,14 +23,22 @@ func (f *AuthProviderFactory) Init(hub *domain.ProviderHub) {
 func (f *AuthProviderFactory) Register(hub *domain.ProviderHub) error {
 	f.log.Info("Attempting to register AuthProvider", nil)
 
-	provider := f.getProvider()
-	if provider == nil {
-		f.log.Error("Failed to create AuthProvider instance", nil)
-		return fmt.Errorf("failed to create AuthProvider instance")
+	authType := f.env.GetString("AUTH_PROVIDER_TYPE", "casdoor")
+	f.log.Info("Using AuthProvider type", map[string]any{
+		"type": authType,
+	})
+
+	provider, err := f.getProvider(authType)
+	if err != nil {
+		f.log.Error("Failed to create AuthProvider instance", map[string]any{
+			"error": err.Error(),
+			"type":  authType,
+		})
+		return fmt.Errorf("failed to create AuthProvider instance: %w", err)
 	}
 
 	f.log.Info("Initializing AuthProvider", nil)
-	err := provider.Initialize()
+	err = provider.Initialize()
 	if err != nil {
 		f.log.Error("Failed to initialize AuthProvider", map[string]any{
 			"error": err.Error(),
@@ -45,6 +53,13 @@ func (f *AuthProviderFactory) Register(hub *domain.ProviderHub) error {
 	return nil
 }
 
-func (f *AuthProviderFactory) getProvider() domauth.AuthProvider {
-	return driverauth.NewCasdoorAuthProviderFromEnv()
+func (f *AuthProviderFactory) getProvider(authType string) (domauth.AuthProvider, error) {
+	switch authType {
+	case "casdoor":
+		return driverauth.NewCasdoorAuthProviderFromEnv(), nil
+	case "array":
+		return driverauth.NewArrayAuthProvider(), nil
+	default:
+		return nil, fmt.Errorf("unsupported auth provider type: %s", authType)
+	}
 }
