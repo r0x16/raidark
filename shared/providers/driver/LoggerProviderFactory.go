@@ -31,8 +31,25 @@ func (f *LoggerProviderFactory) Register(hub *domain.ProviderHub) error {
 func (f *LoggerProviderFactory) getProvider(loggerType string) (domlogger.LogProvider, error) {
 	switch loggerType {
 	case "stdout":
-		return driverlogger.NewStdOutLogManager(), nil
+		return driverlogger.NewStdOutLogManager(f.getLogLevel()), nil
 	}
 
 	return nil, errors.New("invalid logger type: " + loggerType)
+}
+
+func (f *LoggerProviderFactory) getLogLevel() domlogger.LogLevel {
+	switch f.env.GetString("LOG_LEVEL", "INFO") {
+	case "DEBUG":
+		return domlogger.Debug
+	case "INFO":
+		return domlogger.Info
+	case "WARNING":
+		return domlogger.Warning
+	case "ERROR":
+		return domlogger.Error
+	case "CRITICAL":
+		return domlogger.Critical
+	}
+
+	return domlogger.Info
 }

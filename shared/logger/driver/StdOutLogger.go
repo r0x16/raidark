@@ -15,10 +15,14 @@ type StdOutLogManager struct {
 
 var _ domain.LogProvider = &StdOutLogManager{}
 
-func NewStdOutLogManager() *StdOutLogManager {
+func NewStdOutLogManager(logLevel domain.LogLevel) *StdOutLogManager {
+	opts := &slog.HandlerOptions{
+		Level:     getSlogLevel(logLevel),
+		AddSource: true,
+	}
 	manager := &StdOutLogManager{
-		logger:    slog.New(slog.NewJSONHandler(os.Stdout, nil)),
-		logLevel:  domain.Info,
+		logger:    slog.New(slog.NewJSONHandler(os.Stdout, opts)),
+		logLevel:  logLevel,
 		sanitizer: NewLogDataSanitizer(),
 	}
 	return manager
@@ -61,4 +65,21 @@ func (s *StdOutLogManager) Critical(msg string, data map[string]any) {
 // SetLogLevel implements logger.LogProvider.
 func (s *StdOutLogManager) SetLogLevel(level domain.LogLevel) {
 	s.logLevel = level
+}
+
+func getSlogLevel(logLevel domain.LogLevel) slog.Level {
+	switch logLevel {
+	case domain.Debug:
+		return slog.LevelDebug
+	case domain.Info:
+		return slog.LevelInfo
+	case domain.Warning:
+		return slog.LevelWarn
+	case domain.Error:
+		return slog.LevelError
+	case domain.Critical:
+		return slog.LevelError
+	}
+
+	return slog.LevelInfo
 }
