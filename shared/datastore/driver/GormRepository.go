@@ -5,7 +5,14 @@ import (
 	"gorm.io/gorm"
 )
 
-type GormRepository struct{}
+type GormRepository struct {
+	dbProvider domain.DatabaseProvider
+}
+
+func (r *GormRepository) GetExec() *gorm.DB {
+	gormProvider := r.dbProvider.(*GormPostgresDatabaseProvider)
+	return gormProvider.db
+}
 
 func (r *GormRepository) GetTransactionExec(tx domain.Transaction) *gorm.DB {
 	gormtx := tx.(*GormTransaction)
