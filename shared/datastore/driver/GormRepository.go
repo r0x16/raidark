@@ -7,7 +7,7 @@ import (
 
 type GormRepository struct{}
 
-func GetTransactionExec(tx domain.Transaction) *gorm.DB {
+func (r *GormRepository) GetTransactionExec(tx domain.Transaction) *gorm.DB {
 	gormtx := tx.(*GormTransaction)
 
 	gormtx.TransactionMutex.Lock()
