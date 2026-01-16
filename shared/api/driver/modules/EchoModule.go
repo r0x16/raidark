@@ -30,12 +30,17 @@ func NewEchoModule(groupPath string, hub *domprovider.ProviderHub) *EchoModule {
 		Group: group,
 		Hub:   hub,
 		Log:   domprovider.Get[domlogger.LogProvider](hub),
-		Auth:  domprovider.Get[domauth.AuthProvider](hub),
 	}
 }
 
 func NewAuthenticatedEchoModule(groupPath string, hub *domprovider.ProviderHub) *EchoModule {
+
+	if !domprovider.Exists[domauth.AuthProvider](hub) {
+		panic("Auth provider is not set in EchoModule")
+	}
+
 	module := NewEchoModule(groupPath, hub)
+	module.Auth = domprovider.Get[domauth.AuthProvider](hub)
 	module.Group.Use(middleware.KeyAuthWithConfig(middleware.KeyAuthConfig{
 		KeyLookup:  "header:" + echo.HeaderAuthorization,
 		AuthScheme: "Bearer",
