@@ -2,6 +2,7 @@ package logger
 
 import (
 	"log/slog"
+	"strings"
 
 	"github.com/davecgh/go-spew/spew"
 )
@@ -9,6 +10,16 @@ import (
 // LogDataSanitizer handles sanitization of complex data structures for logging
 type LogDataSanitizer struct {
 	spewConfig *spew.ConfigState
+}
+
+var sensitiveKeyFragments = []string{
+	"password",
+	"secret",
+	"token",
+	"authorization",
+	"cookie",
+	"session_id",
+	"certificate",
 }
 
 // NewLogDataSanitizer creates a new instance of LogDataSanitizer with optimal configuration
@@ -70,7 +81,7 @@ func (s *LogDataSanitizer) SanitizeData(data map[string]any) map[string]any {
 
 	sanitized := make(map[string]any, len(data))
 	for key, value := range data {
-		sanitized[key] = s.SanitizeValue(value)
+		sanitized[key] = s.sanitizeField(key, value)
 	}
 
 	return sanitized
@@ -80,8 +91,19 @@ func (s *LogDataSanitizer) SanitizeData(data map[string]any) map[string]any {
 func (s *LogDataSanitizer) ParseDataForSlog(data map[string]any) []any {
 	attrs := make([]any, 0, len(data))
 	for key, value := range data {
-		sanitizedValue := s.SanitizeValue(value)
+		sanitizedValue := s.sanitizeField(key, value)
 		attrs = append(attrs, slog.Any(key, sanitizedValue))
 	}
 	return attrs
+}
+
+func (s *LogDataSanitizer) sanitizeField(key string, value any) any {
+	normalizedKey := strings.ToLower(key)
+	for _, fragment := range sensitiveKeyFragments {
+		if strings.Contains(normalizedKey, fragment) {
+			return "[REDACTED]"
+		}
+	}
+
+	return s.SanitizeValue(value)
 }

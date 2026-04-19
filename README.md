@@ -1,536 +1,315 @@
-# RAIDARK
+# Raidark
 
-A modern, modular Go web framework designed for building scalable REST APIs with built-in authentication, database management, and comprehensive security features.
+Raidark is a Go framework that provides a consistent bootstrap layer for HTTP APIs, persistence, authentication, migrations, seeders, and domain events without forcing application code to depend on infrastructure details.
 
-## Overview
+## What Raidark Gives You
 
-RAIDARK is a lightweight yet powerful web framework that provides:
-
-- **Modular Architecture**: Easy-to-use module system for organizing your API endpoints
-- **Built-in Authentication**: Integrated Casdoor authentication system
-- **Database Support**: PostgreSQL and MySQL support with GORM
-- **Security Features**: CSRF protection, CORS configuration, and secure cookie handling
-- **Environment Management**: Automatic `.env` file loading and configuration management
-- **Provider System**: Flexible dependency injection system for services and components
-
-## Installation
-
-To install RAIDARK in your Go project:
-
-```bash
-go get github.com/r0x16/Raidark
-```
+- Echo-based HTTP server with built-in health and CSRF endpoints
+- Provider hub for dependency registration and retrieval
+- Database adapters for SQLite, PostgreSQL, and MySQL through GORM
+- Authentication adapters with a simple in-memory mode and Casdoor integration
+- Module hooks for routes, models, seed data, and domain event listeners
+- CLI commands for API startup, migrations, and seeding
 
 ## Quick Start
 
-### 1. Create a new project
-
-Create a new Go module and install RAIDARK:
+### 1. Install Raidark in a service
 
 ```bash
-mkdir my-raidark-project
-cd my-raidark-project
-go mod init my-raidark-project
+go mod init my-service
 go get github.com/r0x16/Raidark
 ```
 
-### 2. Create your main application
-
-Create a `main.go` file:
+### 2. Create the application entrypoint
 
 ```go
 package main
 
 import (
-	// Import the main RAIDARK framework
 	raidark "github.com/r0x16/Raidark"
-	// Import API domain interfaces for module definition
-	apidomain "github.com/r0x16/Raidark/shared/api/domain"
-	// Import pre-built API modules for authentication and main API
-	moduleapi "github.com/r0x16/Raidark/shared/api/driver/modules"
-	// Import provider domain interfaces
-	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
-	// Import concrete provider implementations
+	domapi "github.com/r0x16/Raidark/shared/api/domain"
+	modapi "github.com/r0x16/Raidark/shared/api/driver/modules"
 	driverprovider "github.com/r0x16/Raidark/shared/providers/driver"
+	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
+	usersmodule "my-service/users"
 )
 
 func main() {
-	// Initialize RAIDARK with required providers (database, auth, API)
-	raidark := raidark.New(getProviders())
-	// Get the API modules that define your application's endpoints
-	modules := getModules(raidark)
-	// Start the RAIDARK server with the configured modules
-	raidark.Run(modules)
+	app := raidark.New(getProviders())
+	app.Run(getModules(app))
 }
 
-// getModules configures and returns the API modules for your application
-func getModules(raidark *raidark.Raidark) []apidomain.ApiModule {
-	// Create a root module for authentication endpoints (no auth required)
-	authRoot := raidark.RootModule("/auth")
-	// Create an authenticated root module for protected API endpoints
-	apiv1Root := raidark.AuthenticatedRootModule("/api/v1")
+func getModules(app *raidark.Raidark) []domapi.ApiModule {
+	authRoot := app.RootModule("/auth")
+	apiRoot := app.AuthenticatedRootModule("/api/v1")
 
-	// Return the configured modules
-	return []apidomain.ApiModule{
-		// Authentication module handles login, logout, and auth-related endpoints
-		&moduleapi.EchoAuthModule{EchoModule: authRoot},
-		// Main API module for your application's business logic endpoints
-		&moduleapi.EchoApiMainModule{EchoModule: apiv1Root},
+	return []domapi.ApiModule{
+		&modapi.EchoAuthModule{EchoModule: authRoot},
+		&modapi.EchoApiMainModule{EchoModule: apiRoot},
+		&usersmodule.UsersModule{EchoModule: apiRoot},
 	}
 }
 
-// getProviders returns the list of provider factories needed by RAIDARK
 func getProviders() []domprovider.ProviderFactory {
 	return []domprovider.ProviderFactory{
-		// Database provider for data persistence (PostgreSQL/MySQL)
 		&driverprovider.DatastoreProviderFactory{},
-		// Authentication provider for user authentication and authorization
 		&driverprovider.AuthProviderFactory{},
-		// API provider for HTTP server and routing configuration
 		&driverprovider.ApiProviderFactory{},
+		&driverprovider.DomainEventFactory{},
 	}
 }
 ```
 
-### 3. Configure environment variables
+### 3. Create the module in a separate file
 
-Create a `.env` file in your project root with the required configuration (see Environment Variables section below).
+The module only needs to register routes and expose metadata. The action handlers do not need to live in the same file or package as the module.
 
-### 4. Run your application
-
-```bash
-go run main.go
-```
-
-Your RAIDARK application will start on the configured port (default: 8080).
-
-## Creating Custom Modules
-
-RAIDARK uses a modular architecture where each module is organized in its own directory. To create a new module:
-
-### 1. Create the module directory structure
-
-Create a new directory for your module with the same name as the module:
-
-```bash
-mkdir users
-```
-
-### 2. Create the main module file
-
-Create a file named after your module (e.g., `users/users.go`):
+For example, place the module in `users/users.go`:
 
 ```go
 package users
 
 import (
-	"net/http"
-
-	"github.com/labstack/echo/v4"
-	"github.com/r0x16/Raidark/shared/api/domain"
-	"github.com/r0x16/Raidark/shared/api/driver/modules"
-	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
+	modapi "github.com/r0x16/Raidark/shared/api/driver/modules"
+	userscontroller "my-service/users/controller"
 )
 
 type UsersModule struct {
-	*modules.EchoModule
+	*modapi.EchoModule
 }
 
-var _ domain.ApiModule = &UsersModule{}
-
-// Name returns the module name
-func (u *UsersModule) Name() string {
+func (m *UsersModule) Name() string {
 	return "Users"
 }
 
-// Setup configures the module's routes and handlers
-func (u *UsersModule) Setup() error {
-	// Define your routes using ActionInjection for provider hub access
-	u.Group.GET("/users", u.ActionInjection(u.getUsers))
-	u.Group.POST("/users", u.ActionInjection(u.createUser))
-	u.Group.GET("/users/:id", u.ActionInjection(u.getUser))
-	u.Group.PUT("/users/:id", u.ActionInjection(u.updateUser))
-	u.Group.DELETE("/users/:id", u.ActionInjection(u.deleteUser))
-
+func (m *UsersModule) Setup() error {
+	m.Group.GET("/users", m.ActionInjection(userscontroller.ListUsersAction))
 	return nil
 }
-
-// Handler methods with provider hub injection
-func (u *UsersModule) getUsers(c echo.Context, hub *domprovider.ProviderHub) error {
-	// Your logic here with access to hub
-	return c.JSON(http.StatusOK, map[string]string{"message": "List of users"})
-}
-
-func (u *UsersModule) createUser(c echo.Context, hub *domprovider.ProviderHub) error {
-	// Your logic here with access to hub
-	return c.JSON(http.StatusCreated, map[string]string{"message": "User created"})
-}
-
-func (u *UsersModule) getUser(c echo.Context, hub *domprovider.ProviderHub) error {
-	id := c.Param("id")
-	// Your logic here with access to hub
-	return c.JSON(http.StatusOK, map[string]string{"message": "User " + id})
-}
-
-func (u *UsersModule) updateUser(c echo.Context, hub *domprovider.ProviderHub) error {
-	id := c.Param("id")
-	// Your logic here with access to hub
-	return c.JSON(http.StatusOK, map[string]string{"message": "User " + id + " updated"})
-}
-
-func (u *UsersModule) deleteUser(c echo.Context, hub *domprovider.ProviderHub) error {
-	id := c.Param("id")
-	// Your logic here with access to hub
-	return c.JSON(http.StatusOK, map[string]string{"message": "User " + id + " deleted"})
-}
 ```
 
-### 3. Register your module in main.go
-
-Add your custom module to the `getModules` function:
+Then place the action in a separate controller file such as `users/controller/list_users.go`:
 
 ```go
-func getModules(raidark *raidark.Raidark) []apidomain.ApiModule {
-	authRoot := raidark.RootModule("/auth")
-	apiv1Root := raidark.AuthenticatedRootModule("/api/v1")
+package controller
 
-	return []apidomain.ApiModule{
-		&moduleapi.EchoAuthModule{EchoModule: authRoot},
-		&moduleapi.EchoApiMainModule{EchoModule: apiv1Root},
-		// Add your custom module here
-		&users.UsersModule{EchoModule: apiv1Root}, // This will be available at /api/v1/users
-	}
-}
-```
-
-### Module Structure Guidelines
-
-- **Directory name**: Should match the module name (e.g., `users/`, `products/`, `orders/`)
-- **Main file**: Should be named `[module_name].go` (e.g., `users.go`, `products.go`)
-- **Package name**: Should match the directory name
-- **Embed EchoModule**: Your module struct should embed `*modules.EchoModule`
-- **Implement ApiModule interface**: Must implement `Name()` and `Setup()` methods
-
-## Using the Provider Hub
-
-The Provider Hub is RAIDARK's dependency injection system that gives you access to all registered services and components. You can access it through the `hub` parameter in your handler methods when using `ActionInjection`.
-
-### Accessing Services
-
-To access a service from the provider hub, use the `domprovider.Get[T]` function:
-
-```go
-import (
-	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
-	domdatastore "github.com/r0x16/Raidark/shared/datastore/domain"
-	domauth "github.com/r0x16/Raidark/shared/auth/domain"
-	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
-)
-
-// Get the logger service
-logger := domprovider.Get[domlogger.LogProvider](hub)
-
-// Get the database service
-database := domprovider.Get[domdatastore.DatabaseProvider](hub)
-
-// Get the authentication service
-auth := domprovider.Get[domauth.AuthProvider](hub)
-```
-
-### Example: Using the Logger
-
-Here's an example of how to use the logger service in your module:
-
-```go
 import (
 	"net/http"
+
 	"github.com/labstack/echo/v4"
 	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
 	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
 )
 
-func (u *UsersModule) createUser(c echo.Context, hub *domprovider.ProviderHub) error {
-	// Get the logger from the provider hub
+func ListUsersAction(c echo.Context, hub *domprovider.ProviderHub) error {
 	logger := domprovider.Get[domlogger.LogProvider](hub)
-	
-	// Log an error
-	logger.Error("Failed to create user", map[string]any{
-		"error": "User already exists",
-		"email": "user@example.com",
-	})
-	
-	// Log an info message
-	logger.Info("User creation attempted", map[string]any{
-		"email": "user@example.com",
-		"ip":    c.RealIP(),
-	})
-	
-	return c.JSON(http.StatusCreated, map[string]string{"message": "User created"})
+	logger.Info("Listing users", nil)
+
+	return c.JSON(http.StatusOK, []string{})
 }
 ```
 
-### Available Services
+### 4. Start with the simplest local environment
 
-The following services are typically available in the provider hub:
-
-- **`domlogger.LogProvider`** - Logging service for structured logging
-- **`domdatastore.DatabaseProvider`** - Database access and operations
-- **`domauth.AuthProvider`** - Authentication and authorization
-- **`domenv.EnvProvider`** - Environment variable access
-- **`domapi.ApiProvider`** - HTTP server and routing
-
-### Service Registration
-
-Services are automatically registered when you add their provider factories to the `getProviders()` function in your `main.go`. The framework handles the initialization and dependency injection automatically.
-
-## Database Management
-
-RAIDARK provides a unified system for database migrations and seeding using the hub provider architecture. Both operations use the same provider system as the API commands for consistency.
-
-### Database Migrations
-
-Database migrations automatically create and update your database schema based on the models defined in your modules.
-
-#### Running Migrations
-
-```bash
-# Run database migrations
-go run main.go dbmigrate
-```
-
-#### How Migrations Work
-
-Migrations extract models from all registered modules using the `GetModel()` method:
-
-```go
-// In your module
-func (u *UsersModule) GetModel() []any {
-    return []any{
-        &model.User{},
-        &model.UserProfile{},
-    }
-}
-```
-
-The migration system:
-1. Collects all models from all modules
-2. Uses GORM's AutoMigrate to create/update database schema
-3. Logs the migration process with structured logging
-
-### Database Seeding
-
-Database seeding populates your database with initial data using the same hub provider system.
-
-#### Running Seeders
-
-```bash
-# Run database seeding
-go run main.go dbmigrate seed
-```
-
-#### How Seeding Works
-
-Seeding extracts seed data from all registered modules using the `GetSeedData()` method:
-
-```go
-// In your module
-func (u *UsersModule) GetSeedData() []any {
-    return []any{
-        []model.User{
-            {
-                Username: "admin",
-                Email:    "admin@example.com",
-                Role:     "admin",
-            },
-            {
-                Username: "user",
-                Email:    "user@example.com", 
-                Role:     "user",
-            },
-        },
-    }
-}
-```
-
-The seeding system:
-1. Collects all seed data from all modules
-2. Uses database transactions for data integrity
-3. Inserts data using GORM's Create method
-4. Provides rollback on errors with detailed logging
-
-#### Default Implementation
-
-All modules inherit default empty implementations from the base `EchoModule`:
-
-```go
-// Base EchoModule provides default implementations
-func (e *EchoModule) GetModel() []any {
-    return []any{}
-}
-
-func (e *EchoModule) GetSeedData() []any {
-    return []any{}
-}
-```
-
-Override these methods in your modules only when you need to provide models or seed data.
-
-#### Example: Complete Module with Models and Seed Data
-
-```go
-package users
-
-import (
-    "time"
-    "github.com/r0x16/Raidark/shared/api/domain"
-    "github.com/r0x16/Raidark/shared/api/driver/modules"
-    "your-project/models"
-)
-
-type UsersModule struct {
-    *modules.EchoModule
-}
-
-var _ domain.ApiModule = &UsersModule{}
-
-func (u *UsersModule) Name() string {
-    return "Users"
-}
-
-func (u *UsersModule) Setup() error {
-    // Your routes here
-    return nil
-}
-
-// Provide models for database migration
-func (u *UsersModule) GetModel() []any {
-    return []any{
-        &models.User{},
-        &models.UserProfile{},
-    }
-}
-
-// Provide seed data for database initialization
-func (u *UsersModule) GetSeedData() []any {
-    return []any{
-        []models.User{
-            {
-                Username:  "admin",
-                Email:     "admin@example.com",
-                Role:      "admin",
-                CreatedAt: time.Now(),
-            },
-        },
-        []models.UserProfile{
-            {
-                UserID:   "admin",
-                FullName: "System Administrator",
-                Bio:      "Default admin user",
-            },
-        },
-    }
-}
-```
-
-### Database Commands Summary
-
-| Command | Description | Usage |
-|---------|-------------|-------|
-| `dbmigrate` | Run database migrations | `go run main.go dbmigrate` |
-| `dbmigrate seed` | Run database seeding | `go run main.go dbmigrate seed` |
-
-Both commands use the hub provider system for:
-- Database connection management
-- Structured logging
-- Error handling and rollback
-- Module-based data extraction
-
-## Environment Variables
-
-RAIDARK uses the following environment variables for configuration:
-
-### Database Configuration
-- `DATASTORE_TYPE` - Database type (postgres, mysql) (default: postgres)
-- `DB_HOST` - Database host (default: localhost)
-- `DB_PORT` - Database port (default: 5432)
-- `DB_USER` - Database username (default: root)
-- `DB_PASSWORD` - Database password (default: password)
-- `DB_DATABASE` - Database name (default: raidark)
-
-### Application Configuration
-- `LOG_LEVEL` - Logging level (default: INFO)
-- `API_PORT` - API server port (default: 8080)
-
-### CORS Configuration
-- `CORS_ALLOW_ORIGINS` - Comma-separated list of allowed origins
-- `CORS_ALLOW_HEADERS` - Comma-separated list of allowed headers
-- `CORS_ALLOW_METHODS` - Comma-separated list of allowed HTTP methods
-- `CORS_ALLOW_CREDENTIALS` - Whether to allow credentials (true/false)
-
-### CSRF Protection
-- `CSRF_ENABLED` - Enable/disable CSRF protection (default: true)
-- `CSRF_TOKEN_LENGTH` - Length of CSRF tokens (default: 32)
-- `CSRF_COOKIE_NAME` - Name of CSRF cookie (default: _csrf)
-- `CSRF_TOKEN_LOOKUP` - Token lookup method (default: cookie:_csrf)
-- `CSRF_COOKIE_MAX_AGE` - CSRF cookie max age in seconds (default: 86400)
-
-### Casdoor Authentication
-- `CASDOOR_ENDPOINT` - Casdoor server endpoint
-- `CASDOOR_CLIENT_ID` - Your Casdoor client ID
-- `CASDOOR_CLIENT_SECRET` - Your Casdoor client secret
-- `CASDOOR_CERTIFICATE` - Casdoor certificate content
-- `CASDOOR_ORGANIZATION` - Your Casdoor organization name
-- `CASDOOR_APPLICATION` - Your Casdoor application name
-- `CASDOOR_REDIRECT_URI` - OAuth redirect URI
-
-### Example .env file
+Use the checked-in [.env-example](/home/ribon/dev/raidark/.env-example) as the source of truth. For local work, the smallest usable setup is:
 
 ```env
-DATASTORE_TYPE=postgres
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=root
-DB_PASSWORD=password
-DB_DATABASE=raidark
+DATASTORE_TYPE=sqlite
+DB_DATABASE=raidark.db
+
+AUTH_PROVIDER_TYPE=array
 
 LOG_LEVEL=INFO
 API_PORT=8080
-
-# Security Configuration
-CORS_ALLOW_ORIGINS=http://localhost:3000,http://localhost:8080
-CORS_ALLOW_HEADERS=Content-Type,Authorization,X-Requested-With,Accept,Origin,Access-Control-Request-Method,Access-Control-Request-Headers
-CORS_ALLOW_METHODS=GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD
-CORS_ALLOW_CREDENTIALS=true
-
-# CSRF Configuration
-CSRF_ENABLED=true
-CSRF_TOKEN_LENGTH=32
-CSRF_COOKIE_NAME=_csrf
-CSRF_TOKEN_LOOKUP=cookie:_csrf
-CSRF_COOKIE_MAX_AGE=86400
-
-# Casdoor Authentication Configuration
-CASDOOR_ENDPOINT=http://localhost:8000
-CASDOOR_CLIENT_ID=your_client_id_here
-CASDOOR_CLIENT_SECRET=your_client_secret_here
-CASDOOR_CERTIFICATE=your_certificate_content_here
-CASDOOR_ORGANIZATION=your_organization_name
-CASDOOR_APPLICATION=your_application_name
-CASDOOR_REDIRECT_URI=http://localhost:8080/callback
 ```
 
-## Features
+`AUTH_PROVIDER_TYPE=array` is the easiest way to boot a project locally. If you switch to `casdoor`, Raidark expects the full `CASDOOR_*` configuration.
 
-- **Modular API Design**: Organize your endpoints into logical modules
-- **Authentication Ready**: Built-in Casdoor integration for OAuth2 authentication
-- **Database Agnostic**: Support for PostgreSQL and MySQL with GORM
-- **Hub Provider System**: Unified dependency injection for all commands (API, migrations, seeding)
-- **Database Management**: Automated migrations and seeding with module-based data extraction
-- **Security First**: CSRF protection, CORS configuration, and secure defaults
-- **Environment Management**: Automatic `.env` file loading
-- **Provider System**: Flexible dependency injection for services
-- **Logging**: Structured logging with configurable levels
-- **Migration Support**: Database schema management with hub provider architecture
-- **Seeding Support**: Database population with transaction safety and rollback
-- **Event System**: Publish/subscribe pattern for decoupled communication
+### 5. Run the API
 
+For a consumer service:
+
+```bash
+go run main.go api
+```
+
+For this repository itself:
+
+```bash
+go run ./main api
+```
+
+## Mock Authentication Provider
+
+Raidark includes an `array` authentication provider for local development and integration testing.
+
+Warning:
+Do not use `AUTH_PROVIDER_TYPE=array` in production. It is a mock adapter intended only for non-production environments.
+
+Current behavior:
+
+- preloads in-memory test users during startup
+- returns mock tokens from `/auth/exchange`
+- supports `/auth/refresh` using the stored session
+- allows protected routes to be exercised without an external identity provider
+
+### Example Local Flow
+
+Use this configuration:
+
+```env
+AUTH_PROVIDER_TYPE=array
+DATASTORE_TYPE=sqlite
+DB_DATABASE=raidark.db
+```
+
+Start the API and run migrations if your project uses the auth module session model:
+
+```bash
+go run ./main dbmigrate
+go run ./main api
+```
+
+Exchange any local code and state for a mock token:
+
+```bash
+curl -X POST "http://localhost:8080/auth/exchange?code=local-dev&state=local-dev"
+```
+
+The response includes an access token and sets the `app_session` cookie. You can then call protected endpoints with the returned bearer token:
+
+```bash
+curl -H "Authorization: Bearer mock-access-token-local-dev" \
+  http://localhost:8080/api/v1/ping
+```
+
+The mock provider currently preloads these users in memory:
+
+- `admin`
+- `user1`
+- `user2`
+
+Use the `array` provider only when the goal is to test application flow, routing, persistence, or integration wiring without depending on Casdoor.
+
+## Built-in Commands
+
+- `go run ./main api`: start the HTTP API
+- `go run ./main dbmigrate`: run GORM auto-migrations for every registered module
+- `go run ./main dbmigrate seed`: execute all seed payloads exposed by registered modules
+
+## Core Concepts
+
+### Raidark
+
+`raidark.New(...)` creates the application container. During bootstrap it:
+
+1. Loads `.env` when present.
+2. Registers base providers (`EnvProvider`, `LogProvider`).
+3. Registers the custom provider factories passed by the service.
+4. Builds the provider hub.
+
+`Run(...)` then registers modules, subscribes event listeners, and hands control to the CLI layer.
+
+### Provider Hub
+
+The provider hub is the dependency registry used across the framework.
+
+- Register a provider with `domprovider.Register(...)`
+- Resolve a provider with `domprovider.Get[...]`
+- Guard optional dependencies with `domprovider.Exists[...]`
+
+Provider factories are the boundary where infrastructure adapters are created and inserted into the hub.
+
+### ApiModule
+
+Every HTTP module implements `shared/api/domain.ApiModule`:
+
+```go
+type ApiModule interface {
+	Name() string
+	Setup() error
+	GetModel() []any
+	GetSeedData() []any
+	GetEventListeners() []domain.EventListener
+}
+```
+
+That means a module can own:
+
+- routes in `Setup()`
+- database models in `GetModel()`
+- seed payloads in `GetSeedData()`
+- domain event subscriptions in `GetEventListeners()`
+
+### EchoModule
+
+`EchoModule` is the default module implementation used by Raidark's Echo adapter.
+
+- `RootModule("/path")`: plain route group
+- `AuthenticatedRootModule("/path")`: route group protected by Bearer token parsing
+- `ActionInjection(...)`: injects `*ProviderHub` into handlers without passing dependencies manually
+
+## How to Extend Raidark
+
+Raidark is designed so adapters live behind domain interfaces and are selected by provider factories. To add a new adapter:
+
+1. Implement the relevant domain contract.
+2. Create a `ProviderFactory` that builds and registers the adapter.
+3. Add the factory to `getProviders()`.
+
+Factory skeleton:
+
+```go
+type CustomProviderFactory struct {
+	env domenv.EnvProvider
+}
+
+func (f *CustomProviderFactory) Init(hub *domain.ProviderHub) {
+	f.env = domain.Get[domenv.EnvProvider](hub)
+}
+
+func (f *CustomProviderFactory) Register(hub *domain.ProviderHub) error {
+	provider := NewCustomProvider(f.env.GetString("CUSTOM_ENDPOINT", ""))
+	if err := provider.Initialize(); err != nil {
+		return err
+	}
+
+	domain.Register(hub, provider)
+	return nil
+}
+```
+
+Typical extension points:
+
+- `shared/auth/domain.AuthProvider`
+- `shared/datastore/domain.DatabaseProvider`
+- `shared/events/domain.DomainEventsProvider`
+- `shared/api/domain.ApiProvider`
+- `shared/logger/domain.LogProvider`
+
+## Built-in HTTP Surface
+
+The framework currently exposes these built-in routes when the corresponding modules are registered:
+
+- `GET /health`
+- `GET /csrf-token` when `CSRF_ENABLED=true`
+- `POST /auth/exchange`
+- `POST /auth/refresh`
+- `POST /auth/logout`
+- `GET /api/v1/ping`
+
+## Configuration Summary
+
+The full reference lives in [.env-example](/home/ribon/dev/raidark/.env-example). The most relevant variables are:
+
+- `DATASTORE_TYPE`: `sqlite`, `postgres`, or `mysql`
+- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_DATABASE`
+- `AUTH_PROVIDER_TYPE`: `array` or `casdoor`
+- `CASDOOR_*`: required only for the Casdoor adapter
+- `API_PORT`
+- `LOG_LEVEL`
+- `CORS_ALLOW_*`
+- `CSRF_ENABLED`, `CSRF_COOKIE_NAME`, `CSRF_COOKIE_SECURE`, `CSRF_TOKEN_LOOKUP`
+- `DOMAIN_EVENT_PROVIDER_TYPE`, `DOMAIN_EVENT_BUFFER_SIZE`, `DOMAIN_EVENT_WORKERS`
+
+Developed by Brimilon.

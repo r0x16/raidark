@@ -1,4 +1,4 @@
-# Archivos y directorios de Go
+# Go files and directories
 /bin/
 /build/
 /dist/
@@ -10,31 +10,31 @@
 *.test
 *.out
 
-# Archivos de dependencias
+# Dependency directories
 vendor/
 
-# Archivos de módulos
-go.sum
-
-# Archivos temporales y de caché
+# Temporary and cache files
 *.log
 *.tmp
 *.swp
 *.swo
 
-# Archivos de configuración de IDEs
+# IDE configuration
 .idea/
 .vscode/
 *.code-workspace
 
-# Archivos del sistema operativo
+# Operating system files
 .DS_Store
 Thumbs.db
 
-# Archivos de entorno
+# Environment files
 .env
 
-Raidark
+# Local AI state
+.codex
+.codex/
+.cursor/
 
-# Codex generated files
+# AI generated files
 AGENTS.md
