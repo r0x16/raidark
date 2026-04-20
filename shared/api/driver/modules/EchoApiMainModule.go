@@ -5,6 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/r0x16/Raidark/shared/api/domain"
+	domauth "github.com/r0x16/Raidark/shared/auth/domain"
 )
 
 type EchoApiMainModule struct {
@@ -23,6 +24,11 @@ func (e *EchoApiMainModule) Setup() error {
 
 	e.Group.GET("/ping", func(c echo.Context) error {
 		return c.String(http.StatusOK, "pong")
+	})
+
+	e.Group.GET("/me", func(c echo.Context) error {
+		claims := c.Get("user").(*domauth.Claims)
+		return c.JSON(http.StatusOK, claims)
 	})
 
 	return nil
