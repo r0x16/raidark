@@ -156,6 +156,7 @@ func (a *ArrayAuthProvider) ParseToken(token string) (*domain.Claims, error) {
 		Name:         "Administrator",
 		Email:        "admin@test.com",
 		Organization: "test-org",
+		Roles:        []string{"admin"},
 		Type:         "normal-user",
 		Issuer:       "array-auth-provider",
 		Subject:      "admin-id",
