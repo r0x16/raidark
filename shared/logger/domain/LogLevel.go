@@ -26,6 +26,6 @@ func ParseLogLevel(level string) LogLevel {
 		return Critical
 	default:
 		log.Printf("Log level '%s' not recognized, using INFO by default", level)
-		return Info // Nivel por defecto
+		return Info // Default fallback level
 	}
 }

@@ -6,6 +6,7 @@ type Claims struct {
 	Name         string
 	Email        string
 	Organization string
+	Roles        []string
 	Type         string
 	Issuer       string
 	Subject      string

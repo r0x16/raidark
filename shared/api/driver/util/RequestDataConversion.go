@@ -8,7 +8,7 @@ import (
 
 func ParseDate(dateStr string) (*time.Time, error) {
 	if dateStr == "" {
-		return nil, nil // Si está vacío, no hay fecha a asignar
+		return nil, nil // Empty input means there is no date to assign
 	}
 	date, err := time.Parse("02-01-2006", dateStr)
 	if err != nil {

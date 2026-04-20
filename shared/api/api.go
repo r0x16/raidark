@@ -7,8 +7,6 @@ import (
 	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
 )
 
-// TODO: Refactorize
-
 type Api struct {
 	Hub         *domprovider.ProviderHub
 	Modules     []domapi.ApiModule

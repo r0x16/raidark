@@ -233,6 +233,16 @@ func (c *CasdoorAuthProvider) convertCasdoorClaimsToDomainClaims(claims *casdoor
 		Subject:      claims.Subject,
 	}
 
+	if len(claims.User.Roles) > 0 {
+		domainClaims.Roles = make([]string, 0, len(claims.User.Roles))
+		for _, role := range claims.User.Roles {
+			if role == nil || role.Name == "" {
+				continue
+			}
+			domainClaims.Roles = append(domainClaims.Roles, role.Name)
+		}
+	}
+
 	// Handle Audience - convert slice to string
 	if len(claims.Audience) > 0 {
 		domainClaims.Audience = claims.Audience[0]
