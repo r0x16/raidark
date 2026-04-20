@@ -1,6 +1,7 @@
 package driver
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -119,6 +120,15 @@ func (e *EchoApiProvider) Run() error {
 			"error": err.Error(),
 		})
 		return err
+	}
+
+	// Print registered routes
+	fmt.Println("\nRegistered routes:")
+	for _, r := range e.Server.Routes() {
+		if r.Method == echo.RouteNotFound {
+			continue
+		}
+		fmt.Printf("\n%-6s %s", r.Method, r.Path)
 	}
 
 	return e.Server.Start(":" + e.port)
