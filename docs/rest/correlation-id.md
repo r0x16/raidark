@@ -17,16 +17,21 @@ If the client sends `X-Correlation-ID`, the middleware reuses it verbatim (calle
 
 ## Installation
 
-Register the middleware globally or per-group on the Echo instance:
+`CorrelationID` is registered automatically by `EchoApiProvider.Setup()` — no action required in services built on top of Raidark.
 
 ```go
-import "github.com/r0x16/Raidark/shared/api/rest"
-
-e := echo.New()
+// Already done inside EchoApiProvider.Setup(). Do not register again.
 e.Use(rest.CorrelationID())
 ```
 
-It must be installed **before** any middleware or handler that calls `rest.RenderError`, because `RenderError` reads the stored ID to populate `trace_id`.
+It is registered after `middleware.Recover()` and before CORS, so every request — including OPTIONS preflight — carries a trace ID from the earliest point in the middleware chain.
+
+If you use Echo directly (bypassing `EchoApiProvider`), register it manually:
+
+```go
+e := echo.New()
+e.Use(rest.CorrelationID())
+```
 
 ## API
 
@@ -48,7 +53,7 @@ func MyHandler(c echo.Context) error {
 
 ## Integration with error envelope
 
-`rest.RenderError` calls `GetCorrelationID` automatically when `RESTError.TraceID` is empty. Installing `CorrelationID` middleware is therefore sufficient to populate `trace_id` in all error responses — no handler changes required.
+`rest.RenderError` calls `GetCorrelationID` automatically when `RESTError.TraceID` is empty. Because `EchoApiProvider` installs `CorrelationID` globally, `trace_id` is populated in all error responses without any per-handler work.
 
 ## ID format
 
