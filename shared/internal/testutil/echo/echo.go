@@ -1,3 +1,4 @@
+// Package echo contiene helpers para construir contextos Echo en tests.
 package echo
 
 import (
@@ -9,6 +10,7 @@ import (
 	echov4 "github.com/labstack/echo/v4"
 )
 
+// ContextOptions configura la request HTTP usada para construir el contexto.
 type ContextOptions struct {
 	Method  string
 	Target  string
@@ -16,6 +18,8 @@ type ContextOptions struct {
 	Headers map[string]string
 }
 
+// Context agrupa todos los objetos útiles que participan en un test de handler
+// Echo: instancia, request, recorder y contexto.
 type Context struct {
 	Echo     *echov4.Echo
 	Request  *http.Request
@@ -23,7 +27,8 @@ type Context struct {
 	Context  echov4.Context
 }
 
-// NewContext builds an Echo context backed by httptest request/recorder values.
+// NewContext construye un contexto Echo respaldado por httptest, aplicando
+// defaults seguros para method y target cuando el test no los especifica.
 func NewContext(t testing.TB, opts ContextOptions) Context {
 	t.Helper()
 

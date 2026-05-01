@@ -1,3 +1,4 @@
+// Package db valida los helpers de base de datos con smoke tests mínimos.
 package db
 
 import (
@@ -12,6 +13,8 @@ type smokeModel struct {
 	Name string
 }
 
+// TestNewSQLite_smoke verifica que NewSQLite abre la base, migra un modelo y
+// permite persistir/consultar datos sin servicios externos.
 func TestNewSQLite_smoke(t *testing.T) {
 	database := NewSQLite(t, &smokeModel{})
 

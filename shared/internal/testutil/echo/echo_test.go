@@ -1,3 +1,4 @@
+// Package echo valida los helpers de contexto Echo con smoke tests mínimos.
 package echo
 
 import (
@@ -8,6 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestNewContext_smoke verifica que NewContext preserve método, ruta y headers,
+// y que entregue un contexto Echo listo para usar en handlers.
 func TestNewContext_smoke(t *testing.T) {
 	ctx := NewContext(t, ContextOptions{
 		Method: http.MethodPost,

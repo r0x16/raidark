@@ -1,3 +1,4 @@
+// Package fixtures valida los helpers de fixtures embebidas.
 package fixtures
 
 import (
@@ -7,12 +8,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestRead_smoke verifica que Read cargue bytes desde testdata.
 func TestRead_smoke(t *testing.T) {
 	contents := Read(t, "sample.txt")
 
 	assert.Equal(t, "raidark fixture\n", string(contents))
 }
 
+// TestFS_smoke verifica que FS exponga testdata como filesystem navegable.
 func TestFS_smoke(t *testing.T) {
 	filesystem := FS(t)
 

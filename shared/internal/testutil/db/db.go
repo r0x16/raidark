@@ -1,3 +1,4 @@
+// Package db contiene helpers de bases de datos efímeras para tests.
 package db
 
 import (
@@ -7,7 +8,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// NewSQLite opens an in-memory SQLite database and optionally migrates models.
+// NewSQLite abre una base SQLite en memoria para tests, registra el cleanup de
+// la conexión y aplica AutoMigrate cuando se entregan modelos.
 func NewSQLite(t testing.TB, models ...any) *gorm.DB {
 	t.Helper()
 

@@ -1,3 +1,4 @@
+// Package fixtures centraliza fixtures embebidas reutilizables por tests.
 package fixtures
 
 import (
@@ -9,7 +10,8 @@ import (
 //go:embed testdata/*
 var files embed.FS
 
-// Read returns fixture bytes from this package's testdata directory.
+// Read devuelve los bytes de un archivo dentro de testdata y falla el test si
+// el fixture no existe.
 func Read(t testing.TB, name string) []byte {
 	t.Helper()
 
@@ -21,7 +23,8 @@ func Read(t testing.TB, name string) []byte {
 	return contents
 }
 
-// FS returns the embedded fixture filesystem rooted at testdata.
+// FS devuelve el filesystem embebido con raíz en testdata para tests que
+// necesitan abrir fixtures como archivos.
 func FS(t testing.TB) fs.FS {
 	t.Helper()
 
