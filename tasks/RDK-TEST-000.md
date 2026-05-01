@@ -7,7 +7,7 @@
 
 ## Tarea técnica
 - **Tipo:** DEVELOPMENT
-- **Estado:** Ready
+- **Estado:** In Progress
 - **Quién:** DEV
 - **Qué:** Establecer la base de testing de Raidark: convenciones de layout, librerías, helpers compartidos, comando único para correr la batería completa y CI mínimo. Hoy Raidark **no tiene un solo `*_test.go`**; este es el primer paso obligatorio para que las demás tareas de testing apoyen sobre algo común.
 - **Cómo:**
@@ -54,3 +54,58 @@
 - **Actor:** Equipo desarrollador de Raidark.
 - **Historia:** Como desarrollador de Raidark, quiero una base común de testing (toolchain, helpers, comandos, CI) antes de escribir tests por funcionalidad, para no inventar convenciones distintas en cada paquete y para que todos los tests futuros se ejecuten con un único comando.
 - **Valor esperado:** Cualquier tarea de testing posterior empieza con una base estable y predecible; agregar tests a un paquete nuevo no obliga a re-decidir toolchain.
+
+## Bitácora make
+
+### 2026-04-30 — sesión 1
+
+- Creado `Makefile` con targets `test`, `test-integration` y `test-cover`.
+- Los targets de test fijan `GOTOOLCHAIN` al `GOVERSION` resuelto por Go para evitar mezcla entre el toolchain local `go1.25.6` y el `toolchain go1.25.9` declarado en `go.mod`.
+- Agregado `github.com/stretchr/testify v1.11.1` como dependencia directa para tests.
+- Creado `shared/internal/testutil/db` con helper `NewSQLite(t, models...)` para SQLite in-memory con cleanup y `AutoMigrate`.
+- Creado `shared/internal/testutil/echo` con builder de contexto Echo basado en `httptest`.
+- Creado `shared/internal/testutil/fixtures` con fixtures embebidas desde `testdata`.
+- Agregados smoke tests para `db`, `echo` y `fixtures`.
+- Creada documentación `docs/testing.md` con comandos, layout, convenciones, fakes/mocks, coverage e integración.
+- Creado workflow `.github/workflows/test.yml` que corre `go test ./...` en PR y push a `main`, con job de integración documentado como skeleton opt-in.
+- Agregado `coverage.html` a `.gitignore`; `coverage.out` ya queda cubierto por `*.out`.
+
+**Archivos tocados:**
+- `.github/workflows/test.yml` (nuevo)
+- `.gitignore`
+- `Makefile` (nuevo)
+- `docs/testing.md` (nuevo)
+- `go.mod`
+- `shared/internal/testutil/db/db.go` (nuevo)
+- `shared/internal/testutil/db/db_test.go` (nuevo)
+- `shared/internal/testutil/echo/echo.go` (nuevo)
+- `shared/internal/testutil/echo/echo_test.go` (nuevo)
+- `shared/internal/testutil/fixtures/fixtures.go` (nuevo)
+- `shared/internal/testutil/fixtures/fixtures_test.go` (nuevo)
+- `shared/internal/testutil/fixtures/testdata/sample.txt` (nuevo)
+
+**Tests:**
+- `GOCACHE=/tmp/raidark-gocache-final make test` — exitoso.
+- `GOCACHE=/tmp/raidark-gocache-final make test-integration` — exitoso.
+- `GOCACHE=/tmp/raidark-gocache-final make test-cover` — exitoso; generó `coverage.out` y `coverage.html` ignorados por git.
+- Esta tarea es la base de testing del proyecto; no tiene tarea hermana `*-TEST` asociada.
+
+**Pendiente / dudas:**
+- Ninguna. Implementación completa según criterio de aceptación.
+
+## Encuesta de cierre
+
+> Responde inline las preguntas escribiendo después de cada `**Respuesta:**`.
+> Cuando termines, vuelve a invocar `/make` y elige esta tarea para que el agente procese tus respuestas.
+
+1. **¿La implementación cumple el criterio de aceptación tal como está hoy en el archivo?** (sí / no / parcial)
+   **Respuesta:** _
+
+2. **¿Hay algo que falte, sobre o esté mal hecho?** (texto libre, o "nada")
+   **Respuesta:** _
+
+3. **¿Quieres iterar sobre algún punto en particular?** (texto libre, o "no")
+   **Respuesta:** _
+
+4. **¿Damos la tarea por cerrada?** (sí / no)
+   **Respuesta:** _
