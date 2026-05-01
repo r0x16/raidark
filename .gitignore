@@ -31,12 +31,4 @@ Thumbs.db
 # Environment files
 .env
 
-# Local AI state
-.codex
-.codex/
-.cursor/
-
-# AI generated files
-AGENTS.md
-
 *.db
