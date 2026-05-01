@@ -104,9 +104,13 @@ Para cada tarea de desarrollo `<ID>` (ej. `RDK-005`), su tarea hermana de tests 
 
 1. Revisa los criterios de aceptación de la tarea.
 2. Implementa en el código del repo lo que corresponda. Sigue todas las reglas del repositorio (estilo, dependencias declaradas).
-3. Cumple los criterios de aceptación verificables **excepto los tests**: si pide documentación en `docs/`, la escribes; si pide código de producción, lo escribes.
-4. **Tests: NO los escribes acá.** Aunque el criterio de aceptación de la tarea liste tests, esos quedan delegados a la tarea hermana `<ID>-TEST`. Si la tarea no tiene hermana de tests, igual no los escribes — lo registras como bloqueo y se lo dices al usuario en Fase 5.
-5. Si descubres que la tarea está mal definida o requiere decisiones del usuario, **no inventes**: detén la ejecución, registra el bloqueo en bitácora y pregunta.
+3. **Documenta el código que escribes.** Es obligatorio en todos los archivos que creas o modificas significativamente:
+   - **Cabecera de archivo:** al inicio de cada archivo nuevo, agrega un comentario que explique qué es ese archivo, su propósito y qué responsabilidades cubre. En Go usa el formato de comentario de paquete (`// Package foo ...`); en otros lenguajes usa el bloque de comentario propio del lenguaje. En archivos existentes que modificas de forma sustancial, añade o actualiza la cabecera si no la tiene o está incompleta.
+   - **Métodos y funciones complejos:** agrega un comentario antes de la función cuando su comportamiento no es auto-evidente por el nombre y los tipos. No documentes lo obvio — documenta el *por qué* existe, qué invariantes mantiene, qué efectos secundarios tiene, qué restricciones impone o qué caso de borde cubre.
+   - **Líneas confusas:** agrega un comentario inline cuando una operación necesite contexto para entenderse: operaciones bit a bit, índices o desplazamientos no obvios, workarounds a comportamientos de librerías, condiciones que no se deducen de los nombres de variables.
+4. Cumple los criterios de aceptación verificables **excepto los tests**: si pide documentación en `docs/`, la escribes; si pide código de producción, lo escribes.
+5. **Tests: NO los escribes acá.** Aunque el criterio de aceptación de la tarea liste tests, esos quedan delegados a la tarea hermana `<ID>-TEST`. Si la tarea no tiene hermana de tests, igual no los escribes — lo registras como bloqueo y se lo dices al usuario en Fase 5.
+6. Si descubres que la tarea está mal definida o requiere decisiones del usuario, **no inventes**: detén la ejecución, registra el bloqueo en bitácora y pregunta.
 
 ### Fase 4 — Registrar bitácora y abrir encuesta
 
@@ -147,7 +151,9 @@ El bloque `**Tests:**` es **obligatorio** en la sesión donde declaras terminada
 
 #### `## Encuesta de cierre`
 
-La encuesta tiene **dos modos**, y eliges uno según lo que pasó en la sesión:
+La encuesta **siempre se abre al final de cada sesión de implementación**, sin excepción. El modo elegido depende del estado de la sesión, pero en todos los casos el usuario tiene espacio para pedir correcciones. Las respuestas de correcciones se registran en la bitácora igual que cualquier otra iteración.
+
+La encuesta tiene **tres modos**; eliges uno según lo que pasó en la sesión:
 
 **Modo A — Encuesta de dudas** (úsalo si durante la implementación surgieron decisiones, ambigüedades o cosas que la tarea no especifica con claridad).
 
@@ -178,8 +184,17 @@ Mientras implementas, anota cada duda en una lista interna. Al cerrar la sesión
 Reglas del Modo A:
 - Cada pregunta lleva contexto breve (qué decidiste tentativamente, qué alternativas viste, por qué dudas).
 - Si propones opciones, listalas como `a) / b) / c)`.
-- No mezclas preguntas de cierre (cumple / qué falta / cerrar) en este modo. Solo dudas.
-- Después de que el usuario responda, en la siguiente sesión aplicas las decisiones, registras en bitácora cómo las resolviste, y **abres una nueva iteración**: si quedaron más dudas, otra encuesta Modo A; si no quedó ninguna, encuesta Modo B.
+- No mezclas preguntas de cierre (cumple / qué falta / cerrar) en este modo. Solo dudas + correcciones.
+- Al final de la encuesta Modo A, **siempre agregas la pregunta de correcciones** (plantilla abajo).
+- Después de que el usuario responda, en la siguiente sesión aplicas las decisiones y correcciones, registras en bitácora cómo las resolviste, y **abres una nueva iteración**: si quedaron más dudas, otra encuesta Modo A; si no quedó ninguna, encuesta Modo B o Modo C según el estado de los tests.
+
+La pregunta de correcciones al final del Modo A (reemplaza `N` por el número siguiente al de tus dudas):
+
+```markdown
+N. **¿Quieres hacer alguna corrección o ajuste a lo implementado en esta sesión?** (sí / no — si sí, descríbela en Detalle)
+   **Respuesta:** _
+   **Detalle:** _
+```
 
 **Modo B — Encuesta de cierre estándar** (úsalo si NO surgieron dudas durante la implementación, o ya resolviste todas en iteraciones previas Modo A).
 
@@ -204,6 +219,25 @@ Reglas del Modo A:
 
 Solo el Modo B puede cerrar la tarea (vía pregunta 4 = `sí`). El Modo A nunca cierra: siempre obliga a otra iteración.
 
+**Modo C — Solo correcciones** (úsalo cuando NO surgieron dudas Y los tests aún no están listos — es decir, en cualquier sesión donde ni Modo A ni Modo B aplican).
+
+```markdown
+## Encuesta de cierre
+
+> La implementación de esta sesión quedó registrada en la bitácora. Los tests aún no están listos para cerrar la tarea, pero puedes pedir correcciones.
+> Responde inline y vuelve a invocar `/make` con esta tarea para que procese tus respuestas.
+
+1. **¿Quieres hacer alguna corrección o ajuste a lo implementado en esta sesión?** (sí / no — si sí, descríbela en Detalle)
+   **Respuesta:** _
+   **Detalle:** _
+```
+
+Reglas del Modo C:
+- Es el modo por defecto cuando no hay dudas y el gate de tests no está superado.
+- Si el usuario responde `sí` con detalle, en la siguiente sesión aplicas las correcciones y las registras en bitácora como `### YYYY-MM-DD — correcciones iteración N`.
+- Si el usuario responde `no`, la sesión cierra sin cambios y la tarea sigue esperando tests.
+- No mezclas preguntas de cierre estándar en este modo.
+
 #### Gating por tests — cuándo puedes mostrar el Modo B
 
 El Modo B (cierre estándar) **solo se abre si los tests están listos**. Concretamente, antes de ofrecer Modo B chequeas:
@@ -211,15 +245,15 @@ El Modo B (cierre estándar) **solo se abre si los tests están listos**. Concre
 1. ¿Existe `<ID>-TEST.md` en el directorio de tareas?
    - **No:** registras en bitácora "**No hay tarea de tests asociada — bloqueado para cierre.**", muestras al usuario el mensaje:
      > La tarea `<ID>` no tiene tarea de tests asociada (`<ID>-TEST.md`). Los tests son obligatorios para cerrar. Crea la tarea de tests (puedes usar `task-reviewer` o duplicar la plantilla de otra `*-TEST.md` existente) y vuelve a invocar `/make`.
-     y **NO abres encuesta Modo B**. Si tampoco hay dudas, abres una encuesta Modo A con una sola pregunta: "¿Cómo quieres proceder con la creación de la tarea de tests?" para no dejar la sesión sin canal de respuesta.
+     y **NO abres Modo B**. Abres **Modo C** (correcciones), o si hay dudas, **Modo A** (que ya incluye pregunta de correcciones al final).
    - **Sí:** lees su `**Estado:**`.
 2. ¿La tarea `<ID>-TEST` está en `Completed`?
    - **No** (cualquier estado distinto: `Ready`, `In Progress`, `Blocked`): registras el estado actual en bitácora y muestras al usuario:
      > La tarea `<ID>` queda en `In Progress` esperando tests. La tarea de tests `<ID>-TEST` está en `<estado>`. Ejecútala con `/make <ID>-TEST` y vuelve cuando esté `Completed` para cerrar `<ID>`.
-     y **NO abres Modo B** todavía. Si hay dudas pendientes, sí abres Modo A normal.
+     y **NO abres Modo B** todavía. Abres **Modo C** (correcciones), o si hay dudas, **Modo A** (que ya incluye pregunta de correcciones al final).
    - **Sí:** abres Modo B normalmente.
 
-En resumen: **Modo B exige `<ID>-TEST.md` existente y en `Completed`**. Sin eso, la encuesta de cierre no se ofrece y por lo tanto la tarea no puede cerrarse.
+En resumen: **Modo B exige `<ID>-TEST.md` existente y en `Completed`**. Sin eso, abres Modo C o Modo A. **Nunca termines una sesión sin encuesta — siempre hay un canal de respuesta para el usuario.**
 
 Cuando termines la sesión, le dices al usuario explícitamente:
 
@@ -230,7 +264,11 @@ Cuando termines la sesión, le dices al usuario explícitamente:
 Cuando el usuario vuelve y elige una tarea `In Progress` que ya tiene encuesta respondida:
 
 1. Lee las respuestas. Detectas respuesta como **cualquier carácter después de `**Respuesta:**` que no sea solo `_`**.
-2. Aplica los cambios solicitados (puntos 2 y 3 de la encuesta) — vuelves a Fase 3 con el alcance acotado a lo que pidió el usuario.
+2. Aplica los cambios solicitados — el alcance depende del modo:
+   - **Modo B:** aplicas cambios de Q2 (qué falta/mal) y Q3 (iterar sobre punto).
+   - **Modo A:** aplicas respuestas a tus preguntas de duda + correcciones de la pregunta final (si `Respuesta: sí`).
+   - **Modo C:** aplicas correcciones si `Respuesta: sí` y `Detalle` tiene contenido.
+   En todos los casos, vuelves a Fase 3 con el alcance acotado a lo solicitado.
 3. Agrega un **nuevo bloque** a `## Bitácora make` con sesión N+1 describiendo qué iteración hiciste.
 4. **Reabre una nueva encuesta**: agrega un bloque `### Iteración N+1` debajo de la encuesta anterior con la misma plantilla, dejando la anterior como histórico:
 
@@ -288,11 +326,12 @@ Cada vez que retomas una tarea `In Progress` con tarea de tests asociada, **ante
 6. **`In Progress` es contagioso al estado del proyecto.** Si en la lista hay tareas `In Progress`, en el resumen final del listado dices: "Hay N tareas en progreso. El proyecto NO está completo hasta que todas las tareas estén en `Completed`."
 7. **No tocas tareas marcadas `Blocked`.** Solo el usuario las desbloquea.
 8. **Si una tarea tiene dependencias declaradas en su campo `Cuándo` que no están `Completed`, advierte** antes de empezar. Pregunta al usuario si quiere igual continuar (a veces hay dependencias suaves).
-9. **Encuesta tiene dos modos (A: dudas / B: cierre estándar).** Eliges según si surgieron dudas durante la implementación. Modo B es plantilla fija de 4 preguntas — no la modifiques. Modo A es dinámico pero solo contiene preguntas tuyas con contexto, nunca preguntas de cierre.
+9. **Encuesta siempre se abre. Tiene tres modos (A: dudas / B: cierre estándar / C: solo correcciones).** Eliges Modo A si surgieron dudas (agrega la pregunta de correcciones al final), Modo B si no hay dudas y tests están listos, Modo C si no hay dudas y tests aún no están listos. Nunca termines una sesión sin encuesta. Modo B es plantilla fija de 4 preguntas — no la modifiques. Modo A es dinámico con tus preguntas + correcciones al final. Modo C es solo la pregunta de correcciones.
 10. **Idioma del contenido que agregas a los archivos: español.** Igual que el resto del proyecto.
 11. **Tests son obligatorios para cerrar.** Toda tarea de desarrollo se cierra solo si su tarea hermana `<ID>-TEST` existe y está en `Completed`. Sin esto, no abres Modo B y no puedes cambiar a `Completed`.
 12. **NUNCA escribes tests dentro de una tarea de desarrollo.** Aunque sea tentador para validar tu código, los tests son responsabilidad de la tarea hermana `<ID>-TEST`, ejecutada potencialmente por otro agente / otro modelo para evitar sesgo. Si necesitas validar manualmente algo durante el desarrollo, hazlo con scripts ad-hoc fuera del repo o ejecutando código en consola — no comprometas archivos de test.
 13. **Si no existe tarea de tests asociada, no inventes el archivo.** Le dices al usuario que la cree (puede usar `task-reviewer` o duplicar plantilla). Tu trabajo no es generar el `<ID>-TEST.md`.
+14. **Documentación de código es obligatoria en cada archivo que creas o modificas significativamente.** Cabecera explicativa al inicio del archivo, comentario en métodos y funciones no auto-explicativos, comentario inline en líneas confusas. No documentas lo obvio — documentas el *por qué* y los casos no evidentes. Si terminas una sesión sin haber documentado el código que escribiste, la sesión está incompleta.
 
 ## Salida al usuario al final de cada sesión
 
