@@ -7,7 +7,7 @@
 
 ## Tarea técnica
 - **Tipo:** DEVELOPMENT
-- **Estado:** In Progress
+- **Estado:** Completed
 - **Quién:** DEV
 - **Qué:** Implementar y extender la batería de tests del criterio de `RDK-002`.
 - **Cómo:**
@@ -98,6 +98,28 @@
 
 **Pendiente / dudas:**
 - Ninguna. La única rama no cubierta en `shared/api/rest` es el fallback de `CorrelationID` cuando `ids.NewV7()` devuelve error.
+
+### 2026-05-01 — cierre
+
+- El usuario confirmó en la encuesta de cierre iteración 2:
+  - Criterio de aceptación cumplido: `sí`.
+  - Falta/sobra/mal hecho: `no`.
+  - Iteración adicional: `no`.
+  - Cierre: `sí`.
+- Resultado final consolidado:
+  - Tests de envelope REST con snapshots para los 6 sentinels.
+  - Tests de mapper, error desconocido genérico, `details` opcional y `RESTError.Error()`.
+  - Tests de `EchoErrorHandler`, incluyendo sentinel retornado y respuesta ya committed.
+  - Tests de paginación: shape JSON de `Page[T]`, round-trip de cursor, tampering, payload inválido, error de encode y `ClampLimit`.
+  - Tests de `CorrelationID`: header provisto, header ausente con UUIDv7 generado, response header y `GetCorrelationID`.
+  - Test de integración `EchoApiProvider.Setup()` para validar instalación de `rest.EchoErrorHandler` y `rest.CorrelationID()`.
+- Verificación final:
+  - `go test ./shared/api/rest -coverprofile=/tmp/rdk002_rest.cover` → `coverage: 97.7% of statements`.
+  - `go test ./shared/api/driver` → pasa.
+  - `go test ./...` → pasa.
+- Deuda técnica explícita:
+  - La única rama no cubierta en `shared/api/rest` es el fallback de `CorrelationID` cuando `ids.NewV7()` devuelve error; no se induce desde API pública sin modificar producción.
+- Tarea de tests cerrada: `RDK-002-TEST` (`Completed`).
 
 ## Encuesta de cierre
 
