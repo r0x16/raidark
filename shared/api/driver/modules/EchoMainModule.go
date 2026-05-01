@@ -5,6 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/r0x16/Raidark/shared/api/domain"
+	"github.com/r0x16/Raidark/shared/api/rest"
 	domenv "github.com/r0x16/Raidark/shared/env/domain"
 	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
 )
@@ -34,8 +35,9 @@ func (e *EchoMainModule) Setup() error {
 		// Check if CSRF is enabled
 		csrfEnabled := env.GetBool("CSRF_ENABLED", false)
 		if !csrfEnabled {
-			return c.JSON(http.StatusNotFound, map[string]string{
-				"error": "CSRF protection is disabled",
+			return rest.RenderError(c, http.StatusNotFound, &rest.RESTError{
+				Code:    "csrf.disabled",
+				Message: "CSRF protection is disabled.",
 			})
 		}
 
@@ -43,8 +45,9 @@ func (e *EchoMainModule) Setup() error {
 		token := c.Get("csrf")
 		if token == nil {
 			// CSRF middleware is disabled (shouldn't happen due to check above, but for safety)
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "CSRF token not available",
+			return rest.RenderError(c, http.StatusInternalServerError, &rest.RESTError{
+				Code:    "csrf.unavailable",
+				Message: "CSRF token not available.",
 			})
 		}
 

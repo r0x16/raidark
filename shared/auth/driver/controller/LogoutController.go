@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -76,7 +77,7 @@ func (lc *LogoutController) getSessionFromCookie(c echo.Context) (string, error)
 
 	sessionID := cookie.Value
 	if sessionID == "" {
-		return "", echo.NewHTTPError(http.StatusBadRequest, "empty session ID")
+		return "", errors.New("empty session ID")
 	}
 
 	return sessionID, nil

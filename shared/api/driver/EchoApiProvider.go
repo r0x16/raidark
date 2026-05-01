@@ -8,6 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/r0x16/Raidark/shared/api/domain"
+	"github.com/r0x16/Raidark/shared/api/rest"
 	domenv "github.com/r0x16/Raidark/shared/env/domain"
 	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
 	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
@@ -38,7 +39,15 @@ func NewEchoApiProvider(port string, hub *domprovider.ProviderHub) *EchoApiProvi
 
 // Setup implements domain.ApiProvider.
 func (e *EchoApiProvider) Setup() error {
+	// Replace Echo's default error handler with the Raidark REST envelope handler.
+	// All unhandled errors from handlers will be converted to {"error": {...}} JSON.
+	e.Server.HTTPErrorHandler = rest.EchoErrorHandler
+
 	e.Server.Use(middleware.Recover())
+
+	// CorrelationID must be registered before CORS so that every request —
+	// including OPTIONS preflight — carries a trace ID from the earliest point.
+	e.Server.Use(rest.CorrelationID())
 
 	// Configure CORS middleware with environment variables
 	e.configureCORS()

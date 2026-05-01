@@ -1,10 +1,12 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/r0x16/Raidark/shared/api/rest"
 	"github.com/r0x16/Raidark/shared/auth/domain"
 	"github.com/r0x16/Raidark/shared/auth/domain/model"
 	"github.com/r0x16/Raidark/shared/auth/driver/repositories"
@@ -37,8 +39,9 @@ func (rc *RefreshController) Refresh(c echo.Context) error {
 	// Get session ID from cookie
 	sessionID, err := rc.getSessionFromCookie(c)
 	if err != nil {
-		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"error": "No valid session found",
+		return rest.RenderError(c, http.StatusUnauthorized, &rest.RESTError{
+			Code:    "auth.no_session",
+			Message: "No valid session found.",
 		})
 	}
 
@@ -51,8 +54,9 @@ func (rc *RefreshController) Refresh(c echo.Context) error {
 	// Attempt to refresh tokens
 	session, token, err := rc.refreshTokens(authService, sessionID, userAgent, ipAddress)
 	if err != nil {
-		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"error": "Token refresh failed",
+		return rest.RenderError(c, http.StatusUnauthorized, &rest.RESTError{
+			Code:    "auth.refresh_failed",
+			Message: "Token refresh failed.",
 		})
 	}
 
@@ -79,7 +83,7 @@ func (rc *RefreshController) getSessionFromCookie(c echo.Context) (string, error
 
 	sessionID := cookie.Value
 	if sessionID == "" {
-		return "", echo.NewHTTPError(http.StatusUnauthorized, "invalid session")
+		return "", errors.New("invalid session")
 	}
 
 	return sessionID, nil
