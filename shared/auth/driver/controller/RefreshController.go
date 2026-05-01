@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
@@ -82,7 +83,7 @@ func (rc *RefreshController) getSessionFromCookie(c echo.Context) (string, error
 
 	sessionID := cookie.Value
 	if sessionID == "" {
-		return "", echo.NewHTTPError(http.StatusUnauthorized, "invalid session")
+		return "", errors.New("invalid session")
 	}
 
 	return sessionID, nil

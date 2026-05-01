@@ -39,6 +39,10 @@ func NewEchoApiProvider(port string, hub *domprovider.ProviderHub) *EchoApiProvi
 
 // Setup implements domain.ApiProvider.
 func (e *EchoApiProvider) Setup() error {
+	// Replace Echo's default error handler with the Raidark REST envelope handler.
+	// All unhandled errors from handlers will be converted to {"error": {...}} JSON.
+	e.Server.HTTPErrorHandler = rest.EchoErrorHandler
+
 	e.Server.Use(middleware.Recover())
 
 	// CorrelationID must be registered before CORS so that every request —
