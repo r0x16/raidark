@@ -7,6 +7,7 @@ toolchain go1.25.9
 require (
 	github.com/casdoor/casdoor-go-sdk v1.46.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.15.1
 	github.com/spf13/cobra v1.10.2
