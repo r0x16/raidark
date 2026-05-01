@@ -19,13 +19,14 @@ func NewV7() (string, error) {
 	return id.String(), nil
 }
 
-// IsValidV7 returns true if s is a syntactically valid UUID v7.
+// IsValidV7 returns true if s is a valid UUID v7 per RFC 9562:
+// correct canonical form, version 7, and RFC 4122 variant bits (10xxxxxx).
 func IsValidV7(s string) bool {
 	id, err := uuid.Parse(s)
 	if err != nil {
 		return false
 	}
-	return id.Version() == 7
+	return id.Version() == 7 && id.Variant() == uuid.RFC4122
 }
 
 // Scan implements sql.Scanner for reading from a database column.

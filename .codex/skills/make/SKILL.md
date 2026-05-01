@@ -89,6 +89,7 @@ Para cada tarea de desarrollo `<ID>` (ej. `RDK-005`), su tarea hermana de tests 
 - Si la tarea elegida termina en `-TEST`, es **una tarea de tests** (no de desarrollo). No le aplicas las reglas de "tarea de tests asociada" (no se busca a sí misma).
 - Si la tarea elegida es de desarrollo y existe `<ID>-TEST.md`, registras esa tarea como su **tarea de tests asociada** y la usas en Fase 4 y Fase 5 como gating de cierre.
 - Si no existe `<ID>-TEST.md`, debes advertirlo claramente al usuario antes de empezar (ver Fase 5: el cierre será imposible).
+- Si la tarea es de TESTs, nunca debes modificar código que no sea de tests, ni escribir tests en tareas de desarrollo. Si necesitas validar algo durante la implementación, hazlo con scripts ad-hoc o en consola, pero no comprometas archivos de test, en caso de que algo haga que los tests no puedan ser cumplidos, añadelos a la bitacora para que se considere corregirlo en la tarea padre, pero nunca debes modificar el comportamiento de lo que estás probando solo para que pasen los tests.
 
 ### Fase 2 — Cargar contexto de la tarea
 
@@ -104,7 +105,7 @@ Para cada tarea de desarrollo `<ID>` (ej. `RDK-005`), su tarea hermana de tests 
 
 1. Revisa los criterios de aceptación de la tarea.
 2. Implementa en el código del repo lo que corresponda. Sigue todas las reglas del repositorio (estilo, dependencias declaradas).
-3. **Documenta el código que escribes.** Es obligatorio en todos los archivos que creas o modificas significativamente:
+3. **Documenta el código que escribes en inglés.** Es obligatorio en todos los archivos que creas o modificas significativamente:
    - **Cabecera de archivo:** al inicio de cada archivo nuevo, agrega un comentario que explique qué es ese archivo, su propósito y qué responsabilidades cubre. En Go usa el formato de comentario de paquete (`// Package foo ...`); en otros lenguajes usa el bloque de comentario propio del lenguaje. En archivos existentes que modificas de forma sustancial, añade o actualiza la cabecera si no la tiene o está incompleta.
    - **Métodos y funciones complejos:** agrega un comentario antes de la función cuando su comportamiento no es auto-evidente por el nombre y los tipos. No documentes lo obvio — documenta el *por qué* existe, qué invariantes mantiene, qué efectos secundarios tiene, qué restricciones impone o qué caso de borde cubre.
    - **Líneas confusas:** agrega un comentario inline cuando una operación necesite contexto para entenderse: operaciones bit a bit, índices o desplazamientos no obvios, workarounds a comportamientos de librerías, condiciones que no se deducen de los nombres de variables.
@@ -327,7 +328,7 @@ Cada vez que retomas una tarea `In Progress` con tarea de tests asociada, **ante
 7. **No tocas tareas marcadas `Blocked`.** Solo el usuario las desbloquea.
 8. **Si una tarea tiene dependencias declaradas en su campo `Cuándo` que no están `Completed`, advierte** antes de empezar. Pregunta al usuario si quiere igual continuar (a veces hay dependencias suaves).
 9. **Encuesta siempre se abre. Tiene tres modos (A: dudas / B: cierre estándar / C: solo correcciones).** Eliges Modo A si surgieron dudas (agrega la pregunta de correcciones al final), Modo B si no hay dudas y tests están listos, Modo C si no hay dudas y tests aún no están listos. Nunca termines una sesión sin encuesta. Modo B es plantilla fija de 4 preguntas — no la modifiques. Modo A es dinámico con tus preguntas + correcciones al final. Modo C es solo la pregunta de correcciones.
-10. **Idioma del contenido que agregas a los archivos: español.** Igual que el resto del proyecto.
+10. **Idioma del contenido que agregas a los archivos: inglés.** Igual que el resto del proyecto, solo el seguimiento de tareas en español.
 11. **Tests son obligatorios para cerrar.** Toda tarea de desarrollo se cierra solo si su tarea hermana `<ID>-TEST` existe y está en `Completed`. Sin esto, no abres Modo B y no puedes cambiar a `Completed`.
 12. **NUNCA escribes tests dentro de una tarea de desarrollo.** Aunque sea tentador para validar tu código, los tests son responsabilidad de la tarea hermana `<ID>-TEST`, ejecutada potencialmente por otro agente / otro modelo para evitar sesgo. Si necesitas validar manualmente algo durante el desarrollo, hazlo con scripts ad-hoc fuera del repo o ejecutando código en consola — no comprometas archivos de test.
 13. **Si no existe tarea de tests asociada, no inventes el archivo.** Le dices al usuario que la cree (puede usar `task-reviewer` o duplicar plantilla). Tu trabajo no es generar el `<ID>-TEST.md`.
