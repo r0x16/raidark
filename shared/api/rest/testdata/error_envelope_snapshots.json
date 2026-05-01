@@ -1,0 +1,62 @@
+{
+  "conflict": {
+    "status": 409,
+    "body": {
+      "error": {
+        "code": "common.conflict",
+        "message": "The request conflicts with the current state of the resource.",
+        "trace_id": "trace-rdk-002"
+      }
+    }
+  },
+  "forbidden": {
+    "status": 403,
+    "body": {
+      "error": {
+        "code": "common.forbidden",
+        "message": "You do not have permission to perform this action.",
+        "trace_id": "trace-rdk-002"
+      }
+    }
+  },
+  "not_found": {
+    "status": 404,
+    "body": {
+      "error": {
+        "code": "common.not_found",
+        "message": "The requested resource was not found.",
+        "trace_id": "trace-rdk-002"
+      }
+    }
+  },
+  "permanent": {
+    "status": 500,
+    "body": {
+      "error": {
+        "code": "common.permanent_failure",
+        "message": "A permanent error occurred.",
+        "trace_id": "trace-rdk-002"
+      }
+    }
+  },
+  "transient": {
+    "status": 503,
+    "body": {
+      "error": {
+        "code": "common.transient_failure",
+        "message": "A transient error occurred. Please retry.",
+        "trace_id": "trace-rdk-002"
+      }
+    }
+  },
+  "validation": {
+    "status": 400,
+    "body": {
+      "error": {
+        "code": "common.validation_failed",
+        "message": "The request payload is invalid.",
+        "trace_id": "trace-rdk-002"
+      }
+    }
+  }
+}
