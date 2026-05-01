@@ -60,6 +60,17 @@ func TestCursor_roundTrip(t *testing.T) {
 	assert.NotContains(t, cursor, "/")
 }
 
+// TestCursor_encodeRejectsUnmarshalableValues documents the failure mode for
+// invalid cursor state before any opaque token is returned to a client.
+func TestCursor_encodeRejectsUnmarshalableValues(t *testing.T) {
+	cursor, err := rest.EncodeCursor(map[string]any{
+		"callback": func() {},
+	})
+
+	assert.Empty(t, cursor)
+	assert.Error(t, err)
+}
+
 // TestCursor_tamperingInvalidatesCursor covers the malformed-cursor path a
 // client hits after changing bytes in the opaque token.
 func TestCursor_tamperingInvalidatesCursor(t *testing.T) {

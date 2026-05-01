@@ -66,7 +66,42 @@
 **Pendiente / dudas:**
 - Ninguna.
 
+### 2026-05-01 — correcciones iteración 1
+
+- Procesada la encuesta de cierre: el usuario pidió revisar `RDK-002` para validar si las iteraciones de la tarea madre habían agregado funciones o integraciones no cubiertas por tests.
+- Revisado el perfil de cobertura de `shared/api/rest`:
+  - `EchoErrorHandler` tenía sin cubrir la rama de respuesta ya committed.
+  - `EncodeCursor` tenía sin cubrir el error de `json.Marshal` para estados de cursor no serializables.
+  - `CorrelationID` solo mantiene sin cubrir el fallback ante error de `ids.NewV7()`, que no es inducible desde la API pública sin modificar producción.
+- Agregados tests nuevos:
+  - `TestEchoErrorHandler_skipsCommittedResponses`.
+  - `TestCursor_encodeRejectsUnmarshalableValues`.
+  - `TestEchoApiProviderSetup_installsRESTConventions`, para validar que `EchoApiProvider.Setup()` instala `rest.EchoErrorHandler` y `rest.CorrelationID()` como quedó definido en `RDK-002`.
+- Verificación enfocada:
+  - `go test ./shared/api/rest -coverprofile=/tmp/rdk002_rest.cover` → `coverage: 97.7% of statements`.
+  - `go tool cover -func=/tmp/rdk002_rest.cover` muestra `100.0%` en `EchoErrorHandler`, `EncodeCursor`, `DecodeCursor`, `ClampLimit`, `MapError`, `RenderError`, `RESTError.Error()` y `GetCorrelationID`.
+  - `go test ./shared/api/driver` → pasa.
+- Verificación completa:
+  - `go test ./...` → pasa.
+
+**Archivos tocados:**
+- `shared/api/rest/errors_test.go` (actualizado)
+- `shared/api/rest/pagination_test.go` (actualizado)
+- `shared/api/driver/EchoApiProvider_test.go` (nuevo)
+- `tasks/RDK-002-TEST.md` (bitácora y nueva encuesta)
+
+**Tests:**
+- Esta tarea es la tarea de tests asociada a `RDK-002`.
+- `go test ./shared/api/rest -coverprofile=/tmp/rdk002_rest.cover` pasa con cobertura `97.7%`.
+- `go test ./shared/api/driver` pasa.
+- `go test ./...` pasa.
+
+**Pendiente / dudas:**
+- Ninguna. La única rama no cubierta en `shared/api/rest` es el fallback de `CorrelationID` cuando `ids.NewV7()` devuelve error.
+
 ## Encuesta de cierre
+
+### Iteración 1 (respondida)
 
 > Responde inline las preguntas escribiendo después de cada `**Respuesta:**`.
 > Cuando termines, vuelve a invocar `/make` y elige esta tarea para que el agente procese tus respuestas.
@@ -82,3 +117,20 @@
 
 4. **¿Damos la tarea por cerrada?** (sí / no)
    **Respuesta:** no
+
+### Iteración 2
+
+> Responde inline las preguntas escribiendo después de cada `**Respuesta:**`.
+> Cuando termines, vuelve a invocar `/make` y elige esta tarea para que el agente procese tus respuestas.
+
+1. **¿La implementación cumple el criterio de aceptación tal como está hoy en el archivo?** (sí / no / parcial)
+   **Respuesta:** sí
+
+2. **¿Hay algo que falte, sobre o esté mal hecho?** (texto libre, o "nada")
+   **Respuesta:** no
+
+3. **¿Quieres iterar sobre algún punto en particular?** (texto libre, o "no")
+   **Respuesta:** no
+
+4. **¿Damos la tarea por cerrada?** (sí / no)
+   **Respuesta:** sí

@@ -144,6 +144,22 @@ func TestEchoErrorHandler_rendersReturnedSentinels(t *testing.T) {
 	}`, recorder.Body.String())
 }
 
+// TestEchoErrorHandler_skipsCommittedResponses keeps the direct-render path
+// idempotent: handlers that already wrote a response must not be overwritten.
+func TestEchoErrorHandler_skipsCommittedResponses(t *testing.T) {
+	e := echo.New()
+	request := httptest.NewRequest(http.MethodGet, "/already-rendered", nil)
+	recorder := httptest.NewRecorder()
+	context := e.NewContext(request, recorder)
+
+	require.NoError(t, context.JSON(http.StatusTeapot, map[string]string{"status": "already rendered"}))
+
+	rest.EchoErrorHandler(rest.ErrForbidden, context)
+
+	assert.Equal(t, http.StatusTeapot, recorder.Code)
+	assert.JSONEq(t, `{"status":"already rendered"}`, recorder.Body.String())
+}
+
 func loadErrorEnvelopeSnapshots(t *testing.T) map[string]errorEnvelopeSnapshot {
 	t.Helper()
 
