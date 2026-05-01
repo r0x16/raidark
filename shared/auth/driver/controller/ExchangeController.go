@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/r0x16/Raidark/shared/api/rest"
 	"github.com/r0x16/Raidark/shared/auth/domain"
 	"github.com/r0x16/Raidark/shared/auth/domain/model"
 	"github.com/r0x16/Raidark/shared/auth/driver/repositories"
@@ -28,21 +29,24 @@ type ExchangeController struct {
 func ExchangeAction(c echo.Context, hub *domprovider.ProviderHub) error {
 	// Validate that AuthProvider exists in the hub
 	if !domprovider.Exists[domain.AuthProvider](hub) {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Authentication provider not configured",
+		return rest.RenderError(c, http.StatusInternalServerError, &rest.RESTError{
+			Code:    "auth.provider_missing",
+			Message: "Authentication provider not configured.",
 		})
 	}
 
 	// Validate that required providers exist
 	if !domprovider.Exists[domdatastore.DatabaseProvider](hub) {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Database provider not configured",
+		return rest.RenderError(c, http.StatusInternalServerError, &rest.RESTError{
+			Code:    "auth.database_missing",
+			Message: "Database provider not configured.",
 		})
 	}
 
 	if !domprovider.Exists[domlogger.LogProvider](hub) {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Logger provider not configured",
+		return rest.RenderError(c, http.StatusInternalServerError, &rest.RESTError{
+			Code:    "auth.logger_missing",
+			Message: "Logger provider not configured.",
 		})
 	}
 
@@ -78,8 +82,9 @@ func (ec *ExchangeController) Exchange(c echo.Context) error {
 	// Additional validation - req should not be nil after parseRequest
 	if req == nil {
 		ec.Log.Error("Request is nil after parseRequest", nil)
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Invalid request",
+		return rest.RenderError(c, http.StatusBadRequest, &rest.RESTError{
+			Code:    "auth.invalid_request",
+			Message: "Invalid request.",
 		})
 	}
 
@@ -101,8 +106,9 @@ func (ec *ExchangeController) Exchange(c echo.Context) error {
 	authService := ec.initializeAuthService(ec.Datastore)
 	if authService == nil {
 		ec.Log.Error("Failed to initialize authentication service", nil)
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Authentication service unavailable",
+		return rest.RenderError(c, http.StatusInternalServerError, &rest.RESTError{
+			Code:    "auth.service_unavailable",
+			Message: "Authentication service unavailable.",
 		})
 	}
 
@@ -112,8 +118,9 @@ func (ec *ExchangeController) Exchange(c echo.Context) error {
 		ec.Log.Error("exchangeCodeForTokens failed", map[string]any{
 			"error": err.Error(),
 		})
-		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"error": "Authentication failed",
+		return rest.RenderError(c, http.StatusUnauthorized, &rest.RESTError{
+			Code:    "auth.exchange_failed",
+			Message: "Authentication failed.",
 		})
 	}
 
@@ -124,8 +131,9 @@ func (ec *ExchangeController) Exchange(c echo.Context) error {
 			"token_nil":   token == nil,
 			"claims_nil":  claims == nil,
 		})
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Authentication processing failed",
+		return rest.RenderError(c, http.StatusInternalServerError, &rest.RESTError{
+			Code:    "auth.processing_failed",
+			Message: "Authentication processing failed.",
 		})
 	}
 
@@ -167,8 +175,9 @@ func (ec *ExchangeController) parseRequest(c echo.Context) (*domain.ExchangeRequ
 			"query_code":  c.QueryParam("code"),
 			"query_state": c.QueryParam("state"),
 		})
-		return nil, c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Missing required parameters: code and state",
+		return nil, rest.RenderError(c, http.StatusBadRequest, &rest.RESTError{
+			Code:    "auth.missing_params",
+			Message: "Missing required parameters: code and state.",
 		})
 	}
 
