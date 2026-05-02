@@ -34,19 +34,24 @@ func (e *EchoMainModule) Setup() error {
 	// does not exist, so callers receive Echo's 404 (route not found) rather than a custom
 	// 404 from the handler. This matches the principle: disabled features leave no surface.
 	if env.GetBool("CSRF_ENABLED", false) {
-		e.Group.GET("/csrf-token", func(c echo.Context) error {
-			token := c.Get("csrf")
-			if token == nil {
-				return rest.RenderError(c, http.StatusInternalServerError, &rest.RESTError{
-					Code:    "csrf.unavailable",
-					Message: "CSRF token not available.",
-				})
-			}
-			return c.JSON(http.StatusOK, map[string]string{
-				"csrf_token": token.(string),
-			})
-		})
+		e.Group.GET("/csrf-token", e.csrfTokenAction)
 	}
 
 	return nil
+}
+
+// csrfTokenAction returns the CSRF token stored in the Echo context by the CSRF middleware.
+// It is only reachable when CSRF_ENABLED=true (the route is not registered otherwise).
+// A nil token indicates a middleware wiring bug rather than a client error, hence 500.
+func (e *EchoMainModule) csrfTokenAction(c echo.Context) error {
+	token := c.Get("csrf")
+	if token == nil {
+		return rest.RenderError(c, http.StatusInternalServerError, &rest.RESTError{
+			Code:    "csrf.unavailable",
+			Message: "CSRF token not available.",
+		})
+	}
+	return c.JSON(http.StatusOK, map[string]string{
+		"csrf_token": token.(string),
+	})
 }
