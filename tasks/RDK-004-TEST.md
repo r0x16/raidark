@@ -7,7 +7,7 @@
 
 ## Tarea técnica
 - **Tipo:** DEVELOPMENT
-- **Estado:** In Progress
+- **Estado:** Completed
 - **Quién:** DEV
 - **Qué:** Tests del comportamiento toggleable de CSRF y CORS en bootstrap.
 - **Cómo:**
@@ -88,3 +88,26 @@
 
 4. **¿Damos la tarea por cerrada?** (sí / no)
    **Respuesta:** sí
+
+### 2026-05-02 — cierre
+
+**Resultado final consolidado:**
+- Quedaron tests de integración con Echo/`httptest` para CSRF apagado, default apagado, CSRF encendido con rechazo de request sin token, emisión de `/csrf-token`, uso de token válido y política CORS configurable.
+- Los preflight reales cubren el caso sin middleware CORS, orígenes permitidos `https://a.example` / `https://b.example`, origen no permitido `https://c.example`, headers, methods, credentials y max age.
+- La encuesta de cierre confirmó que la implementación cumple y pidió cerrar la tarea.
+
+**Archivos finales:**
+- `shared/api/driver/EchoApiProvider_cors_csrf_test.go`
+- `tasks/RDK-004-TEST.md`
+
+**Verificación final:**
+- `go test ./shared/api/driver -run 'TestEchoApiProvider_(CSRF|CORS)' -count=1` — OK.
+- `go test ./shared/api/driver -coverprofile=/tmp/rdk004-driver-final.cover` — OK.
+- `go tool cover -func=/tmp/rdk004-driver-final.cover`:
+  - `configureCORS`: `88.9%`.
+  - `configureCSRF`: `100.0%`.
+  - total package `shared/api/driver`: `80.7%`.
+- `go test ./...` — OK.
+
+**Tarea madre:**
+- Tests cerrados en `RDK-004-TEST`; esto desbloquea el cierre de `RDK-004` cuando su encuesta lo confirme.
