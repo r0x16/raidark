@@ -1,6 +1,9 @@
 # Prometheus metrics
 
-Package: `github.com/r0x16/Raidark/shared/observability`
+Packages:
+- `github.com/r0x16/Raidark/shared/observability` — `Metrics` bundle, `HTTPMetrics` middleware
+- `github.com/r0x16/Raidark/shared/observability/domain` — `MetricsProvider` interface
+- `github.com/r0x16/Raidark/shared/observability/driver` — `PrometheusMetricsProvider`
 
 ## Purpose
 
@@ -9,18 +12,35 @@ Every service built on Raidark exposes the same HTTP and event-flow metrics out 
 ## Configuration
 
 ```
-METRICS_ENABLED=true        # if false, /metrics is not mounted; recording calls are still safe
+METRICS_ENABLED=true        # if false, factory skips registration; the route is also skipped
 METRICS_PATH=/metrics       # endpoint path
-SERVICE_NAME=my-service     # stamped into logs; not yet a metric label
+SERVICE_NAME=my-service     # stamped into logs as the "service" field
 ```
 
-The `MetricsProvider` is registered automatically by `MetricsProviderFactory` at boot, ahead of the API provider. `EchoApiProvider`:
+Wiring (per-service, in `main.go`):
 
-1. Pulls the provider from the hub.
-2. Registers `observability.HTTPMetrics` after `CorrelationID` and `W3CTrace`.
-3. Mounts the scrape endpoint via `provider.MountScrapeEndpoint(server, METRICS_PATH)`.
+```go
+&driverprovider.MetricsProviderFactory{},
+```
 
-Services consuming the hub do not need any extra wiring.
+That factory only registers a `MetricsProvider` on the hub when `METRICS_ENABLED=true`. The `EchoMetricsModule` (registered by Raidark automatically) probes the hub: when no provider is present, the module is a no-op and `/metrics` is not exposed. The `HTTPMetrics` middleware in `EchoApiProvider` does the same probe, so a service without metrics does no per-request work.
+
+## Architecture
+
+```
+shared/observability/
+├── domain/
+│   └── MetricsProvider.go            # interface (Metrics, Handler, Path)
+├── driver/
+│   └── PrometheusMetricsProvider.go  # concrete impl with private registry
+├── metrics.go                        # Metrics bundle (collectors)
+└── middleware_metrics.go             # HTTPMetrics(m) Echo middleware
+
+shared/api/driver/modules/
+└── EchoMetricsModule.go              # ApiModule that mounts /metrics
+```
+
+The interface lives in `domain/`, the implementation in `driver/`, and the route mounting follows Raidark's standard ApiModule pattern. The interface exposes the scrape endpoint as `http.Handler`, not as `(srv *echo.Echo, path string)`, so the contract is framework-neutral and a future non-Echo router could mount it without changes here.
 
 ## Metrics
 
@@ -50,7 +70,8 @@ Services consuming the hub do not need any extra wiring.
 Pull the provider from the hub and call the helpers — they encapsulate label order:
 
 ```go
-metrics := domprovider.Get[observability.MetricsProvider](hub).Metrics()
+provider := domprovider.Get[obsdomain.MetricsProvider](hub)
+metrics := provider.Metrics()
 
 metrics.RecordEventPublished("orders.created", "success")
 metrics.RecordEventConsumed("orders.created", "billing-consumer", "success")
@@ -60,6 +81,16 @@ metrics.SetOutboxPending(currentDepth)
 ```
 
 Direct access to the underlying `*prometheus.CounterVec` / `*prometheus.HistogramVec` is also available via the `Metrics` struct fields (`HTTPRequestsTotal`, etc.) for advanced cases.
+
+## Why not echo-contrib's prometheus middleware?
+
+The `echo-contrib/echoprometheus` package provides a default HTTP middleware. We considered it and chose to ship our own for three reasons:
+
+1. **Metric names and units are part of the spec.** Raidark mandates `http_requests_total` and `http_request_duration_ms` (milliseconds, not seconds). `echoprometheus` emits `<namespace>_<subsystem>_request_duration_seconds` etc. Renaming via wrappers eats most of the savings.
+2. **Default labels include the raw URL.** Without overriding `LabelFuncs`, every distinct URL spawns a unique time series — exactly the cardinality explosion we're trying to avoid. Customising LabelFuncs is non-trivial and equivalent in size to what we wrote.
+3. **It doesn't help with event metrics.** Half the spec — `events_published_total`, `events_consumed_total`, `outbox_pending_gauge`, etc. — is independent of the HTTP layer. Adding `echoprometheus` would mean two registries to manage in tandem.
+
+For the HTTP slice alone our middleware is ~30 lines (`middleware_metrics.go`). The maintenance trade-off favours keeping it.
 
 ## Testing
 

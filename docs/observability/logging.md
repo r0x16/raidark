@@ -10,31 +10,38 @@ The package wraps the existing `domain.LogProvider` contract, so existing call s
 
 ## Selecting the provider
 
-Set the env var:
+The observability logger is the **default**. To force the legacy stdout-only logger, set `LOGGER_TYPE=stdout`. Both implementations satisfy `domain.LogProvider`.
 
 ```
-LOGGER_TYPE=observability
-LOG_FORMAT=json     # or "text" for local development
-LOG_LEVEL=INFO      # DEBUG | INFO | WARNING | ERROR | CRITICAL
+LOGGER_TYPE=observability   # default; trace-aware
+LOG_FORMAT=json             # or "text" for local development
+LOG_LEVEL=INFO              # DEBUG | INFO | WARNING | ERROR | CRITICAL
 SERVICE_NAME=my-service
 ```
 
-`LOGGER_TYPE=stdout` (the default) keeps the legacy `StdOutLogManager` for services that haven't migrated. Both implementations satisfy `domain.LogProvider`.
-
-`SERVICE_NAME` is registered as a process-wide default. `log.FromContext` will stamp it on every line; if you also call `observability.WithServiceName(ctx, name)`, the per-context value wins.
+`SERVICE_NAME` is registered as a process-wide default by `MetricsProviderFactory` (when present in main.go's providers list). `log.FromContext` will stamp it on every line; if you also call `observability.WithServiceName(ctx, name)`, the per-context value wins.
 
 ## Auto-injected fields
 
 `log.FromContext(ctx)` reads the following from `ctx` and adds them as log attributes:
 
-| Attribute   | Source                                     | When emitted                            |
+| Attribute   | Source                                     | When emitted                             |
 |-------------|--------------------------------------------|------------------------------------------|
 | `trace_id`  | `observability.GetTraceID(ctx)`            | Set by `W3CTrace` middleware             |
 | `span_id`   | `observability.GetSpanID(ctx)`             | Set by `W3CTrace` middleware             |
 | `service`   | `observability.GetServiceName(ctx)` or default | Set by `SERVICE_NAME` or `WithServiceName` |
 | `event_id`  | `observability.GetEventID(ctx)`            | Set by event consumer/publisher adapters |
 
-Empty strings are not emitted: `service` defaults to whatever was registered with `SetDefaultServiceName`; absent fields are simply omitted from the JSON object.
+Empty strings are not emitted: absent fields are simply omitted from the JSON object.
+
+## Sensitive data
+
+The logger applies the shared `DataSanitizer` to every entry of the per-call data map:
+
+- Field names containing `password`, `secret`, `token`, `authorization`, `cookie`, `session_id`, or `certificate` (case-insensitive) are replaced with `[REDACTED]`.
+- Complex values are rendered through `go-spew` with depth 4 and truncated at 500 characters so a chatty struct cannot bloat a single log line into megabytes.
+
+The sanitizer is shared verbatim with the legacy `StdOutLogManager`, so policy is identical regardless of the selected provider. Auto-fields (`trace_id`, `span_id`, etc.) are emitted verbatim — they are produced by trusted code and never need sanitization.
 
 ## Usage
 
@@ -99,7 +106,3 @@ In text mode (`LOG_FORMAT=text`) the same fields are emitted as `key=value` pair
 | `Warning` | `log.Warning(msg, data)`            |
 | `Error`   | `log.Error(msg, data)`              |
 | `Critical`| `log.Critical(msg, data)` (→ ERROR) |
-
-## Sensitive data
-
-Unlike `StdOutLogManager`, this logger does not run a `LogDataSanitizer` over `data`. Call sites that need redaction should redact before logging or wrap the logger with their own sanitiser. Future work may unify the two paths once consumers migrate.

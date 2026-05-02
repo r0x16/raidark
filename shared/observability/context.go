@@ -1,3 +1,12 @@
+// Package observability provides the cross-cutting telemetry primitives used
+// by every service built on top of Raidark: structured logging with
+// automatic correlation fields, Prometheus metrics, and W3C trace-context
+// propagation.
+//
+// The package is intentionally framework-light. Public middlewares plug
+// into Echo, but trace/log helpers are pure context.Context utilities and
+// can be reused from any background worker, CLI command, or event consumer
+// that does not run inside an HTTP request.
 package observability
 
 import (
@@ -5,20 +14,24 @@ import (
 	"sync/atomic"
 )
 
-// Echo context keys (read by handlers via echo.Context.Get) and Go context keys
-// (used by FromContext-style helpers) are kept in sync so the same value is
-// reachable through either path.
+// Context keys stored in echo.Context (and any other request-scoped
+// container) when middlewares promote trace metadata into the per-request
+// surface. The constants are framework-agnostic — they are plain string
+// keys, intended to work for any web layer that exposes a get/set bag,
+// not just Echo. Code that runs outside an HTTP server should read the
+// values from the Go context via the GetTraceID / GetSpanID helpers
+// instead.
 const (
-	// EchoTraceIDKey is the echo.Context key under which W3CTrace stores the trace_id.
-	EchoTraceIDKey = "trace_id"
-	// EchoSpanIDKey is the echo.Context key under which W3CTrace stores the span_id.
-	EchoSpanIDKey = "span_id"
-	// EchoTraceFlagsKey is the echo.Context key under which W3CTrace stores the
+	// ContextTraceIDKey is the key under which W3CTrace stores the trace_id.
+	ContextTraceIDKey = "trace_id"
+	// ContextSpanIDKey is the key under which W3CTrace stores the span_id.
+	ContextSpanIDKey = "span_id"
+	// ContextTraceFlagsKey is the key under which W3CTrace stores the
 	// trace flags (the third W3C component, two hex chars).
-	EchoTraceFlagsKey = "trace_flags"
-	// EchoTraceStateKey is the echo.Context key under which W3CTrace stores the
+	ContextTraceFlagsKey = "trace_flags"
+	// ContextTraceStateKey is the key under which W3CTrace stores the
 	// raw incoming tracestate header value.
-	EchoTraceStateKey = "trace_state"
+	ContextTraceStateKey = "trace_state"
 )
 
 // Distinct unexported types prevent accidental collisions with other packages
@@ -55,7 +68,7 @@ func GetDefaultServiceName() string {
 }
 
 // WithTraceID returns ctx augmented with traceID. The value is also reachable
-// from echo.Context via EchoTraceIDKey when set by the W3CTrace middleware.
+// from echo.Context via ContextTraceIDKey when set by the W3CTrace middleware.
 func WithTraceID(ctx context.Context, traceID string) context.Context {
 	return context.WithValue(ctx, traceIDCtxKey{}, traceID)
 }

@@ -19,7 +19,7 @@ func (f *LoggerProviderFactory) Init(hub *domain.ProviderHub) {
 }
 
 func (f *LoggerProviderFactory) Register(hub *domain.ProviderHub) error {
-	loggerType := f.env.GetString("LOGGER_TYPE", "stdout")
+	loggerType := f.env.GetString("LOGGER_TYPE", "observability")
 	provider, err := f.getProvider(loggerType)
 	if err != nil {
 		return err
@@ -34,13 +34,15 @@ func (f *LoggerProviderFactory) getProvider(loggerType string) (domlogger.LogPro
 	format := obslog.ParseFormat(f.env.GetString("LOG_FORMAT", "json"))
 	switch loggerType {
 	case "observability":
-		// New context-aware logger. Auto-injects trace_id, span_id, service
-		// and event_id when callers wrap it with log.FromContext(ctx).
+		// Default. Context-aware logger that auto-injects trace_id,
+		// span_id, service and event_id when callers wrap it with
+		// log.FromContext(ctx). Applies the shared DataSanitizer to
+		// redact sensitive fields and bound complex values.
 		return obslog.New(format, level), nil
 	case "stdout":
-		// Legacy logger kept as the default to avoid changing behavior for
-		// services that haven't migrated. Selecting "observability" via
-		// LOGGER_TYPE opts a service into the trace-aware logger.
+		// Legacy logger without trace/span correlation. Still selectable
+		// for callers that explicitly want a no-frills logger; keeps
+		// parity with the historical default behaviour.
 		return driverlogger.NewStdOutLogManager(level), nil
 	}
 

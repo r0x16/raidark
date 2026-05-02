@@ -15,9 +15,10 @@ const correlationIDHeader = "X-Correlation-ID"
 //  1. A valid `traceparent` header on the incoming request — the caller is
 //     joining an existing trace, we adopt their trace_id and parent span_id.
 //  2. An `X-Correlation-ID` header that decodes to a 16-byte hex value
-//     (UUIDv7 with dashes stripped qualifies). This bridges the legacy
-//     correlation-ID protocol with W3C trace-context so services that haven't
-//     adopted traceparent yet still get cross-service correlation for free.
+//     (UUIDv7 with dashes stripped qualifies). RDK-002 establishes
+//     X-Correlation-ID as the canonical Raidark request identifier; this
+//     middleware promotes it into a W3C trace_id so the same value travels
+//     through both the REST envelope and any downstream W3C-aware tooling.
 //  3. A freshly generated trace_id from crypto/rand.
 //
 // The local span_id is always freshly generated — this middleware represents
@@ -25,8 +26,9 @@ const correlationIDHeader = "X-Correlation-ID"
 // whether the trace was inherited.
 //
 // Resolved values are exposed via:
-//   - echo.Context keys EchoTraceIDKey / EchoSpanIDKey / EchoTraceFlagsKey /
-//     EchoTraceStateKey for handlers that read echo.Context directly.
+//   - echo.Context keys ContextTraceIDKey / ContextSpanIDKey /
+//     ContextTraceFlagsKey / ContextTraceStateKey for handlers that read
+//     echo.Context directly.
 //   - The request's context.Context (replaced on c.Request via WithContext)
 //     so log.FromContext, downstream goroutines, and DB calls can pick the
 //     fields up without echo coupling.
@@ -36,9 +38,9 @@ func W3CTrace() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			req := c.Request()
-			carrier := httpHeaderCarrier{header: req.Header}
-
-			tc, ok := resolveTraceContext(carrier, req.Header.Get(correlationIDHeader))
+			// http.Header satisfies HeaderCarrier directly via its Get/Set
+			// methods, so no adapter is needed.
+			tc, ok := resolveTraceContext(req.Header, req.Header.Get(correlationIDHeader))
 
 			// Local span is always fresh: this is the entry point of the
 			// local service and any incoming span_id describes the parent.
@@ -56,11 +58,11 @@ func W3CTrace() echo.MiddlewareFunc {
 			}
 			c.SetRequest(req.WithContext(ctx))
 
-			c.Set(EchoTraceIDKey, tc.TraceID)
-			c.Set(EchoSpanIDKey, tc.SpanID)
-			c.Set(EchoTraceFlagsKey, tc.Flags)
+			c.Set(ContextTraceIDKey, tc.TraceID)
+			c.Set(ContextSpanIDKey, tc.SpanID)
+			c.Set(ContextTraceFlagsKey, tc.Flags)
 			if tc.State != "" {
-				c.Set(EchoTraceStateKey, tc.State)
+				c.Set(ContextTraceStateKey, tc.State)
 			}
 
 			// Echo the resolved trace-context back so clients can see what
@@ -102,22 +104,3 @@ func resolveTraceContext(carrier HeaderCarrier, correlationID string) (TraceCont
 		Flags:   defaultTraceFlags,
 	}, false
 }
-
-// httpHeaderCarrier adapts http.Header to HeaderCarrier. The standard library
-// already canonicalizes header names internally, so callers can pass
-// lowercase W3C names ("traceparent") and reach values stored under the
-// canonical form ("Traceparent") without manual normalization.
-type httpHeaderCarrier struct {
-	header headerLike
-}
-
-// headerLike is the subset of http.Header consumed by httpHeaderCarrier.
-// Spelled out explicitly so unit tests can fake it without depending on
-// net/http internals.
-type headerLike interface {
-	Get(key string) string
-	Set(key, value string)
-}
-
-func (c httpHeaderCarrier) Get(key string) string  { return c.header.Get(key) }
-func (c httpHeaderCarrier) Set(key, value string)  { c.header.Set(key, value) }

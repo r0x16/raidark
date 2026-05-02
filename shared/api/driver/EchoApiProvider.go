@@ -12,6 +12,7 @@ import (
 	domenv "github.com/r0x16/Raidark/shared/env/domain"
 	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
 	"github.com/r0x16/Raidark/shared/observability"
+	obsdomain "github.com/r0x16/Raidark/shared/observability/domain"
 	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
 )
 
@@ -24,7 +25,7 @@ type EchoApiProvider struct {
 	// Providers
 	Log     domlogger.LogProvider
 	Env     domenv.EnvProvider
-	Metrics observability.MetricsProvider
+	Metrics obsdomain.MetricsProvider
 }
 
 var _ domain.ApiProvider = &EchoApiProvider{}
@@ -37,11 +38,12 @@ func NewEchoApiProvider(port string, hub *domprovider.ProviderHub) *EchoApiProvi
 		Log:     domprovider.Get[domlogger.LogProvider](hub),
 		Env:     domprovider.Get[domenv.EnvProvider](hub),
 	}
-	// MetricsProvider is optional: services that pre-date RDK-003 may not
-	// register one, and we still want the API to come up. Probe the hub
-	// instead of unconditionally fetching.
-	if domprovider.Exists[observability.MetricsProvider](hub) {
-		provider.Metrics = domprovider.Get[observability.MetricsProvider](hub)
+	// MetricsProvider is optional: services that don't register a
+	// MetricsProviderFactory in main.go simply skip the HTTPMetrics
+	// middleware. The /metrics route itself is registered by the
+	// EchoMetricsModule which performs the same nil check.
+	if domprovider.Exists[obsdomain.MetricsProvider](hub) {
+		provider.Metrics = domprovider.Get[obsdomain.MetricsProvider](hub)
 	}
 	return provider
 }
@@ -78,14 +80,6 @@ func (e *EchoApiProvider) Setup() error {
 	e.configureCSRF()
 
 	e.Server.Pre(middleware.RemoveTrailingSlash())
-
-	// /metrics is mounted last in Setup so it sits after every middleware
-	// has been wired up. promhttp ignores middlewares anyway (the handler
-	// is registered directly on the router) but mounting late keeps the
-	// route definition next to the rest of the operational surface area.
-	if e.Metrics != nil && e.Metrics.Enabled() {
-		e.Metrics.MountScrapeEndpoint(e.Server, e.Env.GetString("METRICS_PATH", "/metrics"))
-	}
 
 	return nil
 }

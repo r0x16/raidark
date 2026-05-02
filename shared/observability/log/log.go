@@ -1,12 +1,13 @@
 // Package log provides a context-aware structured logger that wraps the
 // existing shared/logger LogProvider contract. It auto-injects W3C trace
 // fields (trace_id, span_id), the service name, and the current event_id
-// (when the call site is processing a domain event) into every log line.
+// (when the call site is processing a domain event) into every log line,
+// and applies the shared DataSanitizer so sensitive keys are redacted and
+// complex values are length-bounded.
 //
-// The package preserves the LogProvider interface so existing call sites do
-// not need to change: they keep calling Info/Error/Warning with a data map.
-// The new behavior is opt-in via FromContext, which returns a logger pre-
-// populated with the auto fields drawn from a context.Context.
+// This is the recommended logger for every Raidark service. The legacy
+// stdout-only logger is still selectable via LOGGER_TYPE=stdout for
+// callers that explicitly want no auto-correlation.
 package log
 
 import (
@@ -52,12 +53,13 @@ func ParseFormat(s string) Format {
 // passed to each call.
 //
 // Logger satisfies domain.LogProvider so it is a drop-in replacement for the
-// existing StdOutLogManager. The constructor variants (New, NewWithWriter,
+// legacy StdOutLogManager. The constructor variants (New, NewWithWriter,
 // FromContext) cover the production, test and per-request use cases.
 type Logger struct {
-	logger *slog.Logger
-	level  domlogger.LogLevel
-	fields map[string]any
+	logger    *slog.Logger
+	level     domlogger.LogLevel
+	fields    map[string]any
+	sanitizer *DataSanitizer
 }
 
 var _ domlogger.LogProvider = (*Logger)(nil)
@@ -84,8 +86,9 @@ func NewWithWriter(w io.Writer, format Format, level domlogger.LogLevel) *Logger
 		handler = slog.NewJSONHandler(w, opts)
 	}
 	return &Logger{
-		logger: slog.New(handler),
-		level:  level,
+		logger:    slog.New(handler),
+		level:     level,
+		sanitizer: NewDataSanitizer(),
 	}
 }
 
@@ -95,9 +98,9 @@ func NewWithWriter(w io.Writer, format Format, level domlogger.LogLevel) *Logger
 // the Logger does not emit the key — empty strings would pollute log
 // indexes with hundreds of "" values that mean nothing.
 //
-// The returned Logger shares the same handler and level as the base; only
-// the auto-fields differ. Calling FromContext is therefore cheap and safe
-// inside hot paths.
+// The returned Logger shares the same handler, level and sanitizer as the
+// base; only the auto-fields differ. Calling FromContext is therefore cheap
+// and safe inside hot paths.
 func (l *Logger) FromContext(ctx context.Context) *Logger {
 	if ctx == nil {
 		return l
@@ -119,9 +122,10 @@ func (l *Logger) FromContext(ctx context.Context) *Logger {
 		merged["event_id"] = v
 	}
 	return &Logger{
-		logger: l.logger,
-		level:  l.level,
-		fields: merged,
+		logger:    l.logger,
+		level:     l.level,
+		fields:    merged,
+		sanitizer: l.sanitizer,
 	}
 }
 
@@ -139,7 +143,12 @@ func (l *Logger) With(fields map[string]any) *Logger {
 	for k, v := range fields {
 		merged[k] = v
 	}
-	return &Logger{logger: l.logger, level: l.level, fields: merged}
+	return &Logger{
+		logger:    l.logger,
+		level:     l.level,
+		fields:    merged,
+		sanitizer: l.sanitizer,
+	}
 }
 
 // SetLogLevel implements domlogger.LogProvider. The underlying slog handler
@@ -180,21 +189,22 @@ func (l *Logger) Error(msg string, data map[string]any) {
 }
 
 // Critical implements domlogger.LogProvider. slog has no Critical level so
-// we map it to Error, matching the existing StdOutLogManager behaviour.
+// we map it to Error, matching the legacy StdOutLogManager behaviour.
 func (l *Logger) Critical(msg string, data map[string]any) {
 	l.logger.Error(msg, l.attrs(data)...)
 }
 
 // attrs flattens the auto-fields plus the per-call data map into a slice of
-// slog attributes. The auto-fields are listed first so dashboards that
-// depend on field ordering (rare, but it happens) see them up front.
+// slog attributes, applying the sanitizer to each value. The auto-fields
+// are emitted verbatim (they are produced by trusted code) while the data
+// map is sanitized to redact sensitive keys and bound complex values.
 func (l *Logger) attrs(data map[string]any) []any {
 	out := make([]any, 0, 2*(len(l.fields)+len(data)))
 	for k, v := range l.fields {
 		out = append(out, slog.Any(k, v))
 	}
 	for k, v := range data {
-		out = append(out, slog.Any(k, v))
+		out = append(out, slog.Any(k, l.sanitizer.SanitizeField(k, v)))
 	}
 	return out
 }

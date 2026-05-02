@@ -1,3 +1,9 @@
+// Package logger contains the legacy stdout-only LogProvider implementation.
+// New services should prefer the observability-aware logger in
+// `shared/observability/log`, which auto-injects W3C trace fields and the
+// service name. This implementation is kept selectable via
+// LOGGER_TYPE=stdout for callers that intentionally want a logger without
+// trace correlation.
 package logger
 
 import (
@@ -5,12 +11,13 @@ import (
 	"os"
 
 	"github.com/r0x16/Raidark/shared/logger/domain"
+	obslog "github.com/r0x16/Raidark/shared/observability/log"
 )
 
 type StdOutLogManager struct {
 	logger    *slog.Logger
 	logLevel  domain.LogLevel
-	sanitizer *LogDataSanitizer
+	sanitizer *obslog.DataSanitizer
 }
 
 var _ domain.LogProvider = &StdOutLogManager{}
@@ -23,7 +30,7 @@ func NewStdOutLogManager(logLevel domain.LogLevel) *StdOutLogManager {
 	manager := &StdOutLogManager{
 		logger:    slog.New(slog.NewJSONHandler(os.Stdout, opts)),
 		logLevel:  logLevel,
-		sanitizer: NewLogDataSanitizer(),
+		sanitizer: obslog.NewDataSanitizer(),
 	}
 	return manager
 }
