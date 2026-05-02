@@ -58,6 +58,10 @@ func (r *Raidark) initializeProviders(providers []domprovider.ProviderFactory) *
 	baseProviders := []domprovider.ProviderFactory{
 		&driverprovider.EnvProviderFactory{},
 		&driverprovider.LoggerProviderFactory{},
+		// MetricsProviderFactory must be after Env (it reads METRICS_ENABLED
+		// and SERVICE_NAME) and before any provider that wants to record
+		// onto the shared collectors.
+		&driverprovider.MetricsProviderFactory{},
 	}
 	allProviders := append(baseProviders, providers...)
 

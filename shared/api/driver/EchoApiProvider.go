@@ -11,6 +11,7 @@ import (
 	"github.com/r0x16/Raidark/shared/api/rest"
 	domenv "github.com/r0x16/Raidark/shared/env/domain"
 	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
+	"github.com/r0x16/Raidark/shared/observability"
 	domprovider "github.com/r0x16/Raidark/shared/providers/domain"
 )
 
@@ -21,20 +22,28 @@ type EchoApiProvider struct {
 	Server *echo.Echo
 
 	// Providers
-	Log domlogger.LogProvider
-	Env domenv.EnvProvider
+	Log     domlogger.LogProvider
+	Env     domenv.EnvProvider
+	Metrics observability.MetricsProvider
 }
 
 var _ domain.ApiProvider = &EchoApiProvider{}
 
 func NewEchoApiProvider(port string, hub *domprovider.ProviderHub) *EchoApiProvider {
-	return &EchoApiProvider{
+	provider := &EchoApiProvider{
 		modules: []domain.ApiModule{},
 		port:    port,
 		Server:  echo.New(),
 		Log:     domprovider.Get[domlogger.LogProvider](hub),
 		Env:     domprovider.Get[domenv.EnvProvider](hub),
 	}
+	// MetricsProvider is optional: services that pre-date RDK-003 may not
+	// register one, and we still want the API to come up. Probe the hub
+	// instead of unconditionally fetching.
+	if domprovider.Exists[observability.MetricsProvider](hub) {
+		provider.Metrics = domprovider.Get[observability.MetricsProvider](hub)
+	}
+	return provider
 }
 
 // Setup implements domain.ApiProvider.
@@ -49,6 +58,19 @@ func (e *EchoApiProvider) Setup() error {
 	// including OPTIONS preflight — carries a trace ID from the earliest point.
 	e.Server.Use(rest.CorrelationID())
 
+	// W3CTrace runs after CorrelationID so it can promote a UUIDv7
+	// correlation-ID into a W3C trace_id when the caller hasn't sent
+	// traceparent. Order matters: tracing depends on the correlation-id
+	// header already being on the request.
+	e.Server.Use(observability.W3CTrace())
+
+	// HTTPMetrics is registered before CORS so it observes every response
+	// the server emits, including CORS preflight rejections — those are
+	// genuine traffic and oncall wants them in the dashboards.
+	if e.Metrics != nil {
+		e.Server.Use(observability.HTTPMetrics(e.Metrics.Metrics()))
+	}
+
 	// Configure CORS middleware with environment variables
 	e.configureCORS()
 
@@ -56,6 +78,14 @@ func (e *EchoApiProvider) Setup() error {
 	e.configureCSRF()
 
 	e.Server.Pre(middleware.RemoveTrailingSlash())
+
+	// /metrics is mounted last in Setup so it sits after every middleware
+	// has been wired up. promhttp ignores middlewares anyway (the handler
+	// is registered directly on the router) but mounting late keeps the
+	// route definition next to the rest of the operational surface area.
+	if e.Metrics != nil && e.Metrics.Enabled() {
+		e.Metrics.MountScrapeEndpoint(e.Server, e.Env.GetString("METRICS_PATH", "/metrics"))
+	}
 
 	return nil
 }

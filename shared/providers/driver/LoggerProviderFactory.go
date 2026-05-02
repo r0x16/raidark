@@ -6,6 +6,7 @@ import (
 	domenv "github.com/r0x16/Raidark/shared/env/domain"
 	domlogger "github.com/r0x16/Raidark/shared/logger/domain"
 	driverlogger "github.com/r0x16/Raidark/shared/logger/driver"
+	obslog "github.com/r0x16/Raidark/shared/observability/log"
 	"github.com/r0x16/Raidark/shared/providers/domain"
 )
 
@@ -29,9 +30,18 @@ func (f *LoggerProviderFactory) Register(hub *domain.ProviderHub) error {
 }
 
 func (f *LoggerProviderFactory) getProvider(loggerType string) (domlogger.LogProvider, error) {
+	level := f.getLogLevel()
+	format := obslog.ParseFormat(f.env.GetString("LOG_FORMAT", "json"))
 	switch loggerType {
+	case "observability":
+		// New context-aware logger. Auto-injects trace_id, span_id, service
+		// and event_id when callers wrap it with log.FromContext(ctx).
+		return obslog.New(format, level), nil
 	case "stdout":
-		return driverlogger.NewStdOutLogManager(f.getLogLevel()), nil
+		// Legacy logger kept as the default to avoid changing behavior for
+		// services that haven't migrated. Selecting "observability" via
+		// LOGGER_TYPE opts a service into the trace-aware logger.
+		return driverlogger.NewStdOutLogManager(level), nil
 	}
 
 	return nil, errors.New("invalid logger type: " + loggerType)
