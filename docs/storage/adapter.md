@@ -72,17 +72,26 @@ if err := domstorage.ValidateKey(key); err != nil {
 
 ## Registration
 
-Add `StorageProviderFactory` to the providers list when creating the Raidark application:
+Storage is optional — services that do not use it pay zero overhead. To enable it, add `StorageProviderFactory` to your providers list **and** `EchoStorageModule` to your modules list (the module mounts the internal signed-URL handler at `GET /_storage/*`):
 
 ```go
-import driverprovider "github.com/r0x16/Raidark/shared/providers/driver"
+import (
+    driverprovider "github.com/r0x16/Raidark/shared/providers/driver"
+    moduleapi "github.com/r0x16/Raidark/shared/api/driver/modules"
+)
 
 app := raidark.New([]domprovider.ProviderFactory{
     &driverprovider.ApiProviderFactory{},
-    &driverprovider.DatastoreProviderFactory{},
     &driverprovider.StorageProviderFactory{},
 })
+
+app.Run([]apidomain.ApiModule{
+    &moduleapi.EchoStorageModule{EchoModule: app.RootModule("")},
+    // ... your other modules
+})
 ```
+
+Services that only use public objects and never call `SignedURL` can omit `EchoStorageModule` — the provider still works, but the internal handler is not mounted.
 
 Retrieve the provider anywhere via the hub:
 

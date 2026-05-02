@@ -33,6 +33,10 @@ Objects are stored at `{root}/{key}`, preserving the full key path:
 
 The driver creates intermediate directories automatically on `Put`.
 
+## Filesystem Abstraction
+
+Internally the driver uses [afero](https://github.com/spf13/afero) `BasePathFs`, which wraps all OS filesystem calls and constrains them to the configured root directory. This provides path traversal protection by construction — any key that resolves outside the root is rejected by the library before reaching the OS, even if `ValidateKey` were bypassed. As a side effect, tests can substitute `afero.MemMapFs` for the underlying filesystem, eliminating temporary directories and I/O.
+
 ## Streaming Writes
 
 `Put` never buffers the full object in memory. It uses `io.TeeReader` to feed the same byte stream simultaneously to the destination file (via `io.Copy`) and an MD5 hasher. Memory usage stays at O(copy-buffer size) — approximately 32 KB — regardless of object size.
@@ -68,7 +72,7 @@ where `expires_unix_decimal` is a base-10 Unix timestamp (seconds since epoch). 
 | Key not found in private root | 404 |
 | Valid signature and file exists | 200 |
 
-The 403 cases return a JSON body `{"error": {"code": "storage.url_expired" \| "storage.invalid_signature", ...}}`. HMAC comparison uses `hmac.Equal` for constant-time evaluation, preventing timing-based attacks.
+The 403 cases return a JSON body `{"error": {"code": "storage.url_expired" | "storage.invalid_signature", ...}}`. HMAC comparison uses `hmac.Equal` for constant-time evaluation, preventing timing-based attacks.
 
 `http.ServeContent` is used to serve the file, which transparently handles `Range` requests, `If-None-Match`, `If-Modified-Since`, and `304 Not Modified` responses.
 
@@ -82,10 +86,25 @@ Content-Type is inferred from the key's file extension using `mime.TypeByExtensi
 
 ## Path Traversal Protection
 
-Every filesystem path is constructed as:
+Two independent layers prevent path traversal:
 
-```go
-filepath.Join(root, filepath.FromSlash(key))
-```
+1. **`ValidateKey`** rejects `..` and `.` as path segments before the key reaches the driver.
+2. **`afero.BasePathFs`** resolves every path relative to the configured root and rejects any result that escapes that root, returning `os.ErrPermission`.
 
-After joining, the driver verifies the result starts with `root + os.PathSeparator`. A key such as `../../etc/passwd` would be rejected both by `ValidateKey` (which blocks `..` segments) and by this path-prefix check at the driver level.
+A key such as `a/../../etc/passwd` is blocked by both layers. A legitimate name like `users.internal` (which contains a dot) is accepted because the segment-level check rejects only isolated `..` and `.`, not names that contain them.
+
+## Signing Secret Rotation
+
+The signing secret only affects **access** to private objects via signed URLs. The raw bytes of stored files are never encrypted or tied to the secret.
+
+**If you lose or rotate `STORAGE_SIGNING_SECRET`:**
+
+- **Public files:** unaffected. `PublicURL` continues to work.
+- **Private files:** all existing signed URLs become immediately invalid. The files are still on disk and readable directly (e.g. via `Get`). New signed URLs can be issued once the new secret is deployed.
+- **No data loss occurs.** The worst-case impact is a brief window where in-flight signed URLs (shared with end users) stop working.
+
+**Rotation procedure:**
+1. Generate a new secret: `openssl rand -hex 32`
+2. Update `STORAGE_SIGNING_SECRET` in your environment/secrets manager.
+3. Restart the service.
+4. Re-issue signed URLs for any objects whose in-flight URLs need to remain valid.
