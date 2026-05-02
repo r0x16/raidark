@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -84,12 +85,40 @@ func (e *EchoApiProvider) Setup() error {
 	return nil
 }
 
-// configureCORS sets up CORS middleware using environment variables
+// configureCORS mounts the Echo CORS middleware only when CORS_ALLOW_ORIGINS is explicitly
+// set in the environment. Omitting the variable is a deliberate opt-out: Raidark will not
+// default to a wildcard policy because wildcard CORS plus credentials is insecure and
+// services behind a BFF typically need no CORS at all.
+//
+// Empty entries in the comma-separated list are silently dropped; if every entry is empty
+// the middleware is not mounted and the boot log records cors=disabled.
 func (e *EchoApiProvider) configureCORS() {
-	allowOrigins := e.Env.GetSlice("CORS_ALLOW_ORIGINS", []string{"*"})
+	if !e.Env.IsSet("CORS_ALLOW_ORIGINS") {
+		e.Log.Info("Bootstrap: CORS middleware not mounted", map[string]any{
+			"cors": "disabled",
+		})
+		return
+	}
+
+	rawOrigins := e.Env.GetSlice("CORS_ALLOW_ORIGINS", nil)
+	allowOrigins := make([]string, 0, len(rawOrigins))
+	for _, o := range rawOrigins {
+		if o != "" {
+			allowOrigins = append(allowOrigins, o)
+		}
+	}
+
+	if len(allowOrigins) == 0 {
+		e.Log.Info("Bootstrap: CORS middleware not mounted (CORS_ALLOW_ORIGINS is empty after filtering)", map[string]any{
+			"cors": "disabled",
+		})
+		return
+	}
+
 	allowHeaders := e.Env.GetSlice("CORS_ALLOW_HEADERS", []string{"Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"})
 	allowMethods := e.Env.GetSlice("CORS_ALLOW_METHODS", []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions, http.MethodHead})
 	allowCredentials := e.Env.GetBool("CORS_ALLOW_CREDENTIALS", false)
+	maxAge := e.Env.GetInt("CORS_MAX_AGE", 0)
 
 	corsConfig := middleware.CORSConfig{
 		Skipper:          middleware.DefaultSkipper,
@@ -97,29 +126,37 @@ func (e *EchoApiProvider) configureCORS() {
 		AllowHeaders:     allowHeaders,
 		AllowMethods:     allowMethods,
 		AllowCredentials: allowCredentials,
+		MaxAge:           maxAge,
 	}
 
 	e.Server.Use(middleware.CORSWithConfig(corsConfig))
 
-	e.Log.Info("CORS middleware configured", map[string]any{
-		"allow_origins":     allowOrigins,
-		"allow_headers":     allowHeaders,
-		"allow_methods":     allowMethods,
+	e.Log.Info("Bootstrap: CORS middleware configured", map[string]any{
+		"cors":              strings.Join(allowOrigins, ", "),
+		"allow_headers":     strings.Join(allowHeaders, ", "),
+		"allow_methods":     strings.Join(allowMethods, ", "),
 		"allow_credentials": allowCredentials,
+		"max_age":           maxAge,
 	})
 }
 
-// configureCSRF sets up CSRF middleware using environment variables
+// configureCSRF mounts the Echo CSRF middleware only when CSRF_ENABLED=true. The default
+// is disabled because services behind a BFF that already enforces CSRF should not add a
+// second, contradictory protection layer. When disabled, the /csrf-token route is also
+// not registered (see EchoMainModule).
 func (e *EchoApiProvider) configureCSRF() {
 	csrfEnabled := e.Env.GetBool("CSRF_ENABLED", false)
 
 	if !csrfEnabled {
-		e.Log.Info("CSRF middleware disabled by configuration", nil)
+		e.Log.Info("Bootstrap: CSRF middleware not mounted", map[string]any{
+			"csrf": "disabled",
+		})
 		return
 	}
 
 	tokenLength := e.Env.GetInt("CSRF_TOKEN_LENGTH", 32)
 	cookieName := e.Env.GetString("CSRF_COOKIE_NAME", "_csrf")
+	// CSRF_COOKIE_SECURE should be true in production (HTTPS). Defaults to false for local dev.
 	cookieSecure := e.Env.GetBool("CSRF_COOKIE_SECURE", false)
 	tokenLookup := e.Env.GetString("CSRF_TOKEN_LOOKUP", "cookie:_csrf")
 	cookieMaxAge := e.Env.GetInt("CSRF_COOKIE_MAX_AGE", 86400)
@@ -130,7 +167,7 @@ func (e *EchoApiProvider) configureCSRF() {
 		TokenLookup:    tokenLookup,
 		ContextKey:     "csrf",
 		CookieName:     cookieName,
-		CookieSecure:   cookieSecure, // Set to true in production with HTTPS
+		CookieSecure:   cookieSecure,
 		CookieHTTPOnly: true,
 		CookieSameSite: http.SameSiteStrictMode,
 		CookieMaxAge:   cookieMaxAge,
@@ -138,10 +175,12 @@ func (e *EchoApiProvider) configureCSRF() {
 
 	e.Server.Use(middleware.CSRFWithConfig(csrfConfig))
 
-	e.Log.Info("CSRF middleware configured", map[string]any{
-		"token_length": tokenLength,
-		"cookie_name":  cookieName,
-		"enabled":      true,
+	e.Log.Info("Bootstrap: CSRF middleware configured", map[string]any{
+		"csrf":           "enabled",
+		"token_length":   tokenLength,
+		"cookie_name":    cookieName,
+		"token_lookup":   tokenLookup,
+		"cookie_max_age": cookieMaxAge,
 	})
 }
 
