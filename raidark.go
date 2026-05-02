@@ -44,10 +44,14 @@ func New(providers []domprovider.ProviderFactory) *Raidark {
 }
 
 // registerModules registers the modules to the server
-// It adds the root module and the modules to the server
+// It adds the root module and the modules to the server.
+// EchoMetricsModule is added unconditionally; it short-circuits internally
+// when no MetricsProvider is registered on the hub, so services that did
+// not opt into metrics get a clean no-op without conditional plumbing here.
 func (r *Raidark) registerModules(modules []apidomain.ApiModule) {
 	rootModule := r.RootModule("")
 	r.modules = append(r.modules, &moduleapi.EchoMainModule{EchoModule: rootModule})
+	r.modules = append(r.modules, &moduleapi.EchoMetricsModule{EchoModule: r.RootModule("")})
 	r.modules = append(r.modules, modules...)
 }
 

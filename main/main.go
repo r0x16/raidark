@@ -35,5 +35,10 @@ func getProviders() []domprovider.ProviderFactory {
 		&driverprovider.AuthProviderFactory{},
 		&driverprovider.ApiProviderFactory{},
 		&driverprovider.DomainEventFactory{},
+		// MetricsProviderFactory is opt-in per service: include it to
+		// enable Prometheus collection and the /metrics scrape endpoint.
+		// The factory itself respects METRICS_ENABLED, so ops can flip
+		// metrics off without rebuilding the binary.
+		&driverprovider.MetricsProviderFactory{},
 	}
 }
