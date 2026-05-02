@@ -52,6 +52,7 @@ func (r *Raidark) registerModules(modules []apidomain.ApiModule) {
 	rootModule := r.RootModule("")
 	r.modules = append(r.modules, &moduleapi.EchoMainModule{EchoModule: rootModule})
 	r.modules = append(r.modules, &moduleapi.EchoMetricsModule{EchoModule: r.RootModule("")})
+	r.modules = append(r.modules, &moduleapi.EchoStorageModule{EchoModule: r.RootModule("")})
 	r.modules = append(r.modules, modules...)
 }
 
